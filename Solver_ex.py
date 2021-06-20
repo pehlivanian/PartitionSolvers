@@ -3,7 +3,7 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
-rng = np.random.RandomState(14)
+rng = np.random.RandomState(13)
 
 num_partitions = 2
 n = 15
@@ -31,8 +31,8 @@ single_result = solverSWIG_LTSS.OptimizerSWIG(a,
                                               b,
                                               objective_fn)()
 
-print("MULT CLUST PARTITION")
-print("====================")
+print("OPTIMAL PARTITION")
+print("=================")
 print('{!r}'.format(all_results[0]))
 print('SCORE: {}'.format(all_results[1]))
 print("SINGLE BEST SUBSET")

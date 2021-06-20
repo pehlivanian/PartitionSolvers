@@ -355,7 +355,12 @@ DPSolver::get_optimal_subsets_extern() const {
 
 float
 DPSolver::get_optimal_score_extern() const {
-  return optimal_score_;
+  if (risk_partitioning_objective_) {
+    return optimal_score_;
+  }
+  else {
+    return std::accumulate(score_by_subset_.begin()+1, score_by_subset_.end(), 0.);
+  }
 }
 
 std::vector<float>
