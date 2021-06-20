@@ -13,7 +13,6 @@ __pycache__
 *.tar.gz
 *.tar
 *.gz
-*.txt
 core
 *~
 .ipnyb_checkpoints/
