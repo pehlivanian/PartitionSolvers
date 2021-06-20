@@ -9,14 +9,17 @@
 
 std::vector<int> find_optimal_partition__LTSS(int n,
 					      std::vector<float> a,
-					      std::vector<float> b);
+					      std::vector<float> b,
+					      int parametric_dist);
 
 float find_optimal_score__LTSS(int n,
 			       std::vector<float> a,
-			       std::vector<float> b);
+			       std::vector<float> b,
+			       int parametric_dist);
 
 std::pair<std::vector<int>, float> optimize_one__LTSS(int n,
 						      std::vector<float> a,
-						      std::vector<float> b);
+						      std::vector<float> b,
+						      int parametric_dist);
 
 #endif

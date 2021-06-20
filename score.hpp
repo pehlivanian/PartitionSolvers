@@ -184,7 +184,7 @@ namespace Objectives {
       // CHECK
       float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
       float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
-      return (C>B)? .5*(std::pow(C,2)/B - 1.) : 0.;
+      return (C>B)? .5*(std::pow(C,2)/B + B) - C : 0.;
     }
   
     float compute_score_riskpart(int i, int j) override {
@@ -196,7 +196,7 @@ namespace Objectives {
 
     float compute_ambient_score_multclust(float a, float b) override {
       // CHECK
-      return (a>b)? .5*(std::pow(a,2)/b - 1.) : 0.;
+      return (a>b)? .5*(std::pow(a,2)/b + b) - a : 0.;
     }
 
     float compute_ambient_score_riskpart(float a, float b) override {
