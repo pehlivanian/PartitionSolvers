@@ -252,8 +252,8 @@ namespace Objectives {
 
     void compute_partial_sums() override {
       float a_cum;
-      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::min()));
-      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::min()));
+      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
     
       for (int i=0; i<n_; ++i) {
 	a_sums_[i][i] = 0.;

@@ -112,8 +112,8 @@ DPSolver::create_multiple_clustering_case() {
   LTSSSolver_ = std::make_unique<LTSSSolver>(n_, a_, b_, parametric_dist_);
 
   // Initialize matrix
-  maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::min()));
-  maxScore_sec_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::min()));
+  maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
+  maxScore_sec_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
   nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
   nextStart_sec_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
   subsets_ = std::vector<std::vector<int> >(T_, std::vector<int>());
@@ -160,8 +160,8 @@ DPSolver::create_multiple_clustering_case() {
   int maxNextStart = -1, maxNextStart_sec = -1;
   for(int j=2; j<=T_; ++j) {
     for (int i=0; i<n_; ++i) {
-      maxScore = std::numeric_limits<float>::min();
-      maxScore_sec = std::numeric_limits<float>::min();
+      maxScore = std::numeric_limits<float>::lowest();
+      maxScore_sec = std::numeric_limits<float>::lowest();
       for (int k=i+1; k<=(n_-(j-1)); ++k) {
 	score_sec = partialSums[i][k] + maxScore_sec_[k][j-1];
 	score = std::max(partialSums[i][k] + maxScore_[k][j-1], maxScore_sec_[k][j-1]);
@@ -226,7 +226,7 @@ DPSolver::create() {
   }
   
   // Initialize matrix
-  maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::min()));
+  maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
   nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
   subsets_ = std::vector<std::vector<int> >(T_, std::vector<int>());
   score_by_subset_ = std::vector<float>(T_, 0.);
@@ -254,7 +254,7 @@ DPSolver::create() {
   int maxNextStart = -1;
   for(int j=2; j<=T_; ++j) {
     for (int i=0; i<n_; ++i) {
-      maxScore = std::numeric_limits<float>::min();
+      maxScore = std::numeric_limits<float>::lowest();
       for (int k=i+1; k<=(n_-(j-1)); ++k) {
 	score = partialSums[i][k] + maxScore_[k][j-1];
 	if (score > maxScore) {
