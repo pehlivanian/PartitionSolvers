@@ -3,17 +3,17 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
-rng = np.random.RandomState(13)
+rng = np.random.RandomState(132)
 
 num_partitions = 2
 n = 15
 a = proto.FArray()                  # wrapper for C++ float array type
 b = proto.FArray()                  # wrapper for C++ float array type
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian, 3 ~ RationalScore
-risk_partitioning_objective = False # False => multiple clustering score function is used
+risk_partitioning_objective = True # False => multiple clustering score function is used
 optimized_score_calculation = False # Leave this False; only implemented for RationalScore case
 
-a = rng.uniform(low=-10.0, high=10.0, size=n)
+a = rng.uniform(low=0.0, high=10.0, size=n)
 b = rng.uniform(low=1.0, high=10.0, size=n)
 
 

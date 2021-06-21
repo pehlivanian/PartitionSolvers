@@ -68,6 +68,6 @@ std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
 		     use_rational_optimization);
   std::vector<std::vector<int> > subsets = dp.get_optimal_subsets_extern();
   float score = dp.get_optimal_score_extern();
-  
+
   return std::make_pair(subsets, score);
 }
