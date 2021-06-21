@@ -3,10 +3,10 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
-rng = np.random.RandomState(133)
+rng = np.random.RandomState(134)
 
 num_partitions = 2
-n = 15
+n = 50
 a = proto.FArray()                  # wrapper for C++ float array type
 b = proto.FArray()                  # wrapper for C++ float array type
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian

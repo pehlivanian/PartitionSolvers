@@ -128,11 +128,9 @@ namespace Objectives {
 
     float compute_score_riskpart(int i, int j) override {
       // CHECK
-      float Call = std::accumulate(a_.begin(), a_.end(), 0.);
-      float Ball = std::accumulate(b_.begin(), b_.end(), 0.);
       float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
       float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
-      return C*std::log(C/B) - Call*std::log(Call/Ball);
+      return C*std::log(C/B);
     }
     
     float compute_ambient_score_multclust(float a, float b) override {
@@ -193,9 +191,7 @@ namespace Objectives {
       // CHECK
       float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
       float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
-      float Call = std::accumulate(a_.begin(), a_.end(), 0.);
-      float Ball = std::accumulate(b_.begin(), b_.end(), 0.);
-      return C*C/2./B - Call*Call/2./Ball;
+      return C*C/2./B;
     }
 
     float compute_ambient_score_multclust(float a, float b) override {

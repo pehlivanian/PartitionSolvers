@@ -300,6 +300,11 @@ DPSolver::optimize_multiple_clustering_case() {
   // reorder subsets
   reorder_subsets(subsets_, score_by_subset_);
 
+  // adjust cumulative score
+  optimal_score_ -= compute_ambient_score(std::accumulate(a_.begin(), a_.end(), 0.),
+					  std::accumulate(b_.begin(), b_.end(), 0.));
+
+
 }
 
 void
@@ -346,6 +351,10 @@ DPSolver::optimize() {
     optimal_score_ += score_by_subset_[T_-t];
     currentInd = nextInd;
   }
+
+  // adjust cumulative score
+  optimal_score_ -= compute_ambient_score(std::accumulate(a_.begin(), a_.end(), 0.),
+					  std::accumulate(b_.begin(), b_.end(), 0.));
 }
 
 std::vector<std::vector<int> >
