@@ -10,12 +10,13 @@ n = 15
 a = proto.FArray()                  # wrapper for C++ float array type
 b = proto.FArray()                  # wrapper for C++ float array type
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian, 3 ~ RationalScore
-risk_partitioning_objective = True # False => multiple clustering score function is used
+risk_partitioning_objective = False # False => multiple clustering score function is used
 optimized_score_calculation = False # Leave this False; only implemented for RationalScore case
 
-a = rng.uniform(low=0.0, high=10.0, size=n)
-b = rng.uniform(low=1.0, high=10.0, size=n)
-
+a_lower_limit = 0. if objective_fn == 1 else -10.; a_higher_limit = 10.
+b_lower_limit = 0.; b_higher_limit = 10.
+a = rng.uniform(low=a_lower_limit, high=a_higher_limit, size=n)
+b = rng.uniform(low=b_lower_limit, high=b_higher_limit, size=n)
 
 # all_results[0] ~ size n partition
 # all_results[1] ~ cumulative score
