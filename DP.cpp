@@ -135,7 +135,7 @@ DPSolver::create_multiple_clustering_case() {
     std::copy(b_.begin()+i, b_.end(), std::back_inserter(b_atten));	      
     LTSSSolver_.reset(new LTSSSolver(n_-i, a_atten, b_atten, parametric_dist_));
     maxScore_[i][2] =  LTSSSolver_->get_optimal_score_extern();
-    if (LTSSSolver_->get_optimal_subset_extern()[0] == 0) {
+    if ((LTSSSolver_->get_optimal_subset_extern()[0] == 0) && (LTSSSolver_->get_optimal_subset_extern().size() != n_-i)) {
       int ind = LTSSSolver_->get_optimal_subset_extern().size()-1;
       nextStart_[i][2] = LTSSSolver_->get_optimal_subset_extern()[ind]+i+1;
     }
@@ -278,7 +278,11 @@ DPSolver::optimize_multiple_clustering_case() {
   for (int t=T_; t>0; --t) {
     float score_num1 = 0., score_den1 = 0.;
     std::vector<int> subset;
-    nextInd1 = nextStart_[currentInd][t];
+    // XXX
+    // Assume for this exercise that the j=1 set is the gap set
+    // (equivalently that f is increasing in x)
+    // nextInd1 = nextStart_[currentInd][t];
+    nextInd1 = nextStart_sec_[currentInd][t];
     for (int i=currentInd; i<nextInd1; ++i) {
       score_num1 += a_[i];
       score_den1 += b_[i];

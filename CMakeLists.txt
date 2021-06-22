@@ -59,6 +59,10 @@ target_link_libraries(LTSS_solver_test LTSS)
 add_executable(DP_solver_test DP_solver_test.cpp)
 target_link_libraries(DP_solver_test DP LTSS)
 
+# DP example
+add_executable(DP_ex DP_ex.cpp)
+target_link_libraries(DP_ex DP LTSS)
+
 # C++ executable gtest_all
 if (GTEST)
   add_executable(gtest_all gtest_all.cpp)
