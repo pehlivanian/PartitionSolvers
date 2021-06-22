@@ -348,8 +348,8 @@ DPSolver::optimize() {
     nextInd = nextStart_[currentInd][t];
     for (int i=currentInd; i<nextInd; ++i) {
       subsets_[T_-t].push_back(priority_sortind_[i]);
-      score_num += a_[priority_sortind_[i]];
-      score_den += b_[priority_sortind_[i]];
+      score_num += a_[i];
+      score_den += b_[i];
     }
     score_by_subset_[T_-t] = compute_ambient_score(score_num, score_den);
     optimal_score_ += score_by_subset_[T_-t];
