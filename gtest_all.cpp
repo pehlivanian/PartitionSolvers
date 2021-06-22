@@ -183,7 +183,7 @@ TEST(DPSolverTest, OrderedProperty) {
 
 TEST(DPSolverTest, HighestScoringSetOf2TieOutAllDists) {
   
-  int NUM_CASES = 200, T = 2;
+  int NUM_CASES = 500, T = 2;
   size_t lower_n=10, upper_n=100;
 
   std::default_random_engine gen;
@@ -255,8 +255,8 @@ TEST(DPSolverTest, OptimalityTestWithRandomPartitions) {
   std::default_random_engine gen;
   gen.seed(std::random_device()());
   std::uniform_int_distribution<int> distn(5, 50);
-  std::uniform_real_distribution<float> dista(-10., 10.);
-  std::uniform_real_distribution<float> distb( 0., 10.);
+  std::uniform_real_distribution<float> dista( 1., 10.);
+  std::uniform_real_distribution<float> distb( 1., 10.);
 
   std::vector<float> a, b;
 
@@ -275,23 +275,36 @@ TEST(DPSolverTest, OptimalityTestWithRandomPartitions) {
     ASSERT_GE(n, 5);
     ASSERT_LE(n, 100);
 
-    auto dp = DPSolver(n, T, a, b, objective_fn::RationalScore, true, false);
+    auto dp = DPSolver(n, T, a, b, objective_fn::Poisson, true, false);
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto scores = dp.get_score_by_subset_extern();
 
     for (int subcase_num=0; subcase_num<NUM_SUBCASES; ++subcase_num) {
       std::uniform_int_distribution<int> distm(5, n);
+      
       int m1 = distm(gen), m21;
       int m2 = distm(gen), m22;
+      if ((m1 == m2) || (m1 == n) || (m2 == n))
+	continue;
       m21 = std::min(m1, m2);
       m22 = std::max(m1, m2);
       
+     
+      auto context = PoissonContext(a,
+				    b,
+				    n,
+				    objective_fn::Poisson,
+				    true,
+				    false);
+
       float rand_score, dp_score;
-      rand_score = rational_obj(a, b, 0, m21) + rational_obj(a, b, m21, m22) + rational_obj(a, b, m22, n);
-      dp_score = rational_obj(a, b, dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
-	rational_obj(a, b, dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
-	rational_obj(a, b, dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
-      
+      rand_score = context.compute_score_riskpart(0, m21) + 
+	context.compute_score_riskpart(m21, m22) + 
+	context.compute_score_riskpart(m22, n);
+      dp_score = context.compute_score_riskpart(dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
+	context.compute_score_riskpart(dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
+	context.compute_score_riskpart(dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
+
       ASSERT_LE(rand_score, dp_score);
     }
   }
