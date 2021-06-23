@@ -57,7 +57,7 @@ float rational_obj(std::vector<float> a, std::vector<float> b, int start, int en
 TEST(DPSolverTest, OptimizationFlag) {
 
   int n = 100, T = 25;
-  size_t NUM_CASES = 10;
+  size_t NUM_CASES = 100;
   
   std::default_random_engine gen;
   gen.seed(std::random_device()());
@@ -70,25 +70,41 @@ TEST(DPSolverTest, OptimizationFlag) {
       el = dista(gen);
     for (auto&el : b)
       el = distb(gen);
+
+    std::vector<objective_fn> objectives = {objective_fn::Poisson,
+					    objective_fn::RationalScore};
+
+    for (auto objective : objectives) {
     
-    // Optimization flag only implemented for RationalScore context...
-    auto dp_unopt = DPSolver(n, T, a, b, objective_fn::RationalScore, false, false);
-    auto dp_opt = DPSolver(n, T, a, b, objective_fn::RationalScore, false, true);
+      auto dp_unopt = DPSolver(n, T, a, b, objective, true, false);
+      auto dp_opt = DPSolver(n, T, a, b, objective, true, true);
+      
+      auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
+      auto subsets_opt = dp_opt.get_optimal_subsets_extern();
     
-    auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
-    auto subsets_opt = dp_opt.get_optimal_subsets_extern();
-    
-    ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
-    
-    for (size_t j=0; j<subsets_unopt.size(); ++j) {
-      ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
+      ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
+      
+      for (size_t j=0; j<subsets_unopt.size(); ++j) {
+	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
+      }
+      
+      dp_unopt = DPSolver(n, T, a, b, objective, false, false);
+      dp_opt = DPSolver(n, T, a, b, objective, false, true);
+      
+      subsets_unopt = dp_unopt.get_optimal_subsets_extern();
+      subsets_opt = dp_opt.get_optimal_subsets_extern();
+      
+      ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
+      
+      for (size_t j=0; j<subsets_unopt.size(); ++j) {
+	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
+      }    
     }
 
     // ...throw otherwise
     auto dp_gauss_unopt = DPSolver(n, T, a, b, objective_fn::Gaussian, false, false);
     EXPECT_THROW(auto dp_gauss_opt = DPSolver(n, T, a, b, objective_fn::Gaussian, false, true), Objectives::optimizationFlagException);
-    auto dp_poiss_unopt = DPSolver(n, T, a, b, objective_fn::Poisson, false, false);
-    EXPECT_THROW(auto dp_poiss_opt = DPSolver(n, T, a, b, objective_fn::Poisson, false, true), Objectives::optimizationFlagException);
+    EXPECT_THROW(auto dp_gauss_opt = DPSolver(n, T, a, b, objective_fn::Gaussian, true, true), Objectives::optimizationFlagException);
   }
 }
 

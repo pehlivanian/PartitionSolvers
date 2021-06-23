@@ -138,21 +138,35 @@ namespace Objectives {
     }  
 
     void compute_partial_sums() override {
-      throw optimizationFlagException();
+      float a_cum;
+      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+    
+      for (int i=0; i<n_; ++i) {
+	a_sums_[i][i] = 0.;
+	b_sums_[i][i] = 0.;
+      }
+
+      for (int i=0; i<n_; ++i) {
+	a_cum = -a_[i-1];
+	for (int j=i+1; j<=n_; ++j) {
+	  a_cum += a_[j-2];
+	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+	}
+      }  
     }
 
-    float compute_score_multclust_optimized(int i, int j) override {
-      UNUSED(i);
-      UNUSED(j);
-      throw optimizationFlagException();
+    float compute_score_riskpart_optimized(int i, int j) override {
+      float score = a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]);
+      return score;
     }
     
-    float compute_score_riskpart_optimized(int i, int j) override {
-      UNUSED(i);
-      UNUSED(j);
-      throw optimizationFlagException();
+    float compute_score_multclust_optimized(int i, int j) override {
+      float score = (a_sums_[i][j] > b_sums_[i][j]) ? a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]) + b_sums_[i][j] - a_sums_[i][j]: 0.;
+      return score;
     }
-
+    
   };
 
   class GaussianContext : public ParametricContext {
