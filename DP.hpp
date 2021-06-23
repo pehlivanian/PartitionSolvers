@@ -81,14 +81,8 @@ private:
   std::unique_ptr<LTSSSolver> LTSSSolver_;
 
   void _init() { 
-    if (risk_partitioning_objective_) {
-      create();
-      optimize();
-    }
-    else {
-      create();
-      optimize();
-    }
+    create();
+    optimize();
   }
   void create();
   void createContext();

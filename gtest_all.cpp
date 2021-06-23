@@ -31,7 +31,7 @@ void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
 	    
 }
 
-void pretty_print_subsets(std::vector<std::vector<int>>& subsets) {
+void pretty_print_subsets(std::vector<std::vector<int> >& subsets) {
   std::cout << "SUBSETS\n";
   std::cout << "[\n";
   std::for_each(subsets.begin(), subsets.end(), [](std::vector<int>& subset){
@@ -111,7 +111,7 @@ TEST(DPSolverTest, Baselines ) {
       0.22745816, 0.218429  , 0.21809504, 0.22771114, 0.218429  ,
       0.21809504, 0.22771114, 0.22745816, 0.21809504, 0.22745816};
 
-  std::vector<std::vector<int>> expected = {
+  std::vector<std::vector<int> > expected = {
     {1, 2, 3, 4, 6, 8, 10, 12, 16, 19, 22, 23, 25, 28, 29, 32, 35, 38, 21}, 
     {13, 24}, 
     {0, 5, 7, 9, 11, 14, 18, 33, 36, 15, 27, 30, 37, 39},
