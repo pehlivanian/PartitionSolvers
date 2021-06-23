@@ -16,6 +16,16 @@ using namespace Objectives;
 
 class LTSSSolver {
 public:
+  LTSSSolver(std::vector<float> a,
+	     std::vector<float> b,
+	     objective_fn parametric_dist=objective_fn::Gaussian
+	     ) :
+    n_{static_cast<int>(a.size())},
+    a_{a},
+    b_{b},
+    parametric_dist_{parametric_dist}
+  { _init(); }
+	     
   LTSSSolver(int n,
 	     std::vector<float> a,
 	     std::vector<float> b,
@@ -42,6 +52,7 @@ private:
 
   void _init() { create(); optimize(); }
   void create();
+  void createContext();
   void optimize();
 
   void sort_by_priority(std::vector<float>&, std::vector<float>&);

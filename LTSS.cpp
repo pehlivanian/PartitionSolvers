@@ -45,19 +45,13 @@ LTSSSolver::sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   
 }
 
-void 
-LTSSSolver::create() {
-  // sort by priority
-  sort_by_priority(a_, b_);
-
-  subset_ = std::vector<int>();
-
+void
+LTSSSolver::createContext() {
   // create reference to score function
   if (parametric_dist_ == objective_fn::Gaussian) {
     context_ = std::make_unique<GaussianContext>(a_, 
 						 b_, 
 						 n_, 
-						 parametric_dist_,
 						 false,
 						 false);
   }
@@ -65,7 +59,6 @@ LTSSSolver::create() {
     context_ = std::make_unique<PoissonContext>(a_, 
 						b_, 
 						n_,
-						parametric_dist_,
 						false,
 						false);
   }
@@ -73,13 +66,23 @@ LTSSSolver::create() {
     context_ = std::make_unique<RationalScoreContext>(a_,
 						      b_,
 						      n_,
-						      parametric_dist_,
 						      false,
 						      false);
   }
   else {
     throw distributionException();
   }
+}
+
+void 
+LTSSSolver::create() {
+  // sort by priority
+  sort_by_priority(a_, b_);
+
+  subset_ = std::vector<int>();
+
+  // create context
+  createContext();
 }
 
 void

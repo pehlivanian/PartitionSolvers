@@ -32,59 +32,23 @@ DPSolver::sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
 
   priority_sortind_ = ind;
 
-  // Inefficient reordering
   std::vector<float> a_s, b_s;
   for (auto i : ind) {
     a_s.push_back(a[i]);
     b_s.push_back(b[i]);
   }
 
-  std::copy(a_s.begin(), a_s.end(), a.begin());
-  std::copy(b_s.begin(), b_s.end(), b.begin());
+  std::copy(a_s.cbegin(), a_s.cend(), a.begin());
+  std::copy(b_s.cbegin(), b_s.cend(), b.begin());
 }
 
-void
-DPSolver::print_maxScore_() {
-
-  for (int i=0; i<n_; ++i) {
-    std::copy(maxScore_[i].begin(), maxScore_[i].end(), std::ostream_iterator<float>(std::cout, " "));
-    std::cout << std::endl;
-  }
-}
-
-void
-DPSolver::print_nextStart_() {
-  for (int i=0; i<n_; ++i) {
-    std::copy(nextStart_[i].begin(), nextStart_[i].end(), std::ostream_iterator<int>(std::cout, " "));
-    std::cout << std::endl;
-  }
-}
-
-float
-DPSolver::compute_score(int i, int j) {
-  return context_->compute_score(i, j);
-}
-
-float
-DPSolver::compute_ambient_score(float a, float b) {
-  return context_->compute_ambient_score(a, b);
-}
-
-
-void
-DPSolver::create_multiple_clustering_case() {
-  // reset optimal_score_
-  optimal_score_ = 0.;
-
-  // sort vectors by priority function G(x,y) = x/y
-  sort_by_priority(a_, b_);
-
+void 
+DPSolver::createContext() {
   // create reference to score function
   if (parametric_dist_ == objective_fn::Gaussian) {
     context_ = std::make_unique<GaussianContext>(a_, 
 						 b_, 
 						 n_, 
-						 parametric_dist_,
 						 risk_partitioning_objective_,
 						 use_rational_optimization_);
   }
@@ -92,7 +56,6 @@ DPSolver::create_multiple_clustering_case() {
     context_ = std::make_unique<PoissonContext>(a_, 
 						b_, 
 						n_,
-						parametric_dist_,
 						risk_partitioning_objective_,
 						use_rational_optimization_);
   }
@@ -100,13 +63,24 @@ DPSolver::create_multiple_clustering_case() {
     context_ = std::make_unique<RationalScoreContext>(a_, 
 						      b_, 
 						      n_,
-						      parametric_dist_,
 						      risk_partitioning_objective_,
 						      use_rational_optimization_);
   }
   else {
     throw distributionException();
   }
+}
+
+void
+DPSolver::create_multiple_clustering_case() {
+  // reset optimal_score_
+  optimal_score_ = 0.;
+
+  // create context
+  createContext();
+
+  // sort vectors by priority function G(x,y) = x/y
+  sort_by_priority(a_, b_);
 
   // Initialize LTSSSolver for t = 2 case
   LTSSSolver_ = std::make_unique<LTSSSolver>(n_, a_, b_, parametric_dist_);
@@ -131,8 +105,8 @@ DPSolver::create_multiple_clustering_case() {
 
   std::vector<float> a_atten, b_atten;
   for (int i=0; i<n_; ++i) {
-    std::copy(a_.begin()+i, a_.end(), std::back_inserter(a_atten));
-    std::copy(b_.begin()+i, b_.end(), std::back_inserter(b_atten));	      
+    std::copy(a_.cbegin()+i, a_.cend(), std::back_inserter(a_atten));
+    std::copy(b_.cbegin()+i, b_.cend(), std::back_inserter(b_atten));	      
     LTSSSolver_.reset(new LTSSSolver(n_-i, a_atten, b_atten, parametric_dist_));
     maxScore_[i][2] =  LTSSSolver_->get_optimal_score_extern();
     if ((LTSSSolver_->get_optimal_subset_extern()[0] == 0) && (LTSSSolver_->get_optimal_subset_extern().size() != n_-i)) {
@@ -194,37 +168,10 @@ DPSolver::create() {
 
   // sort vectors by priority function G(x,y) = x/y
   sort_by_priority(a_, b_);
-  
-  // create reference to score function
 
-  if (parametric_dist_ == objective_fn::Gaussian) {
-    context_ = std::make_unique<GaussianContext>(a_, 
-						 b_, 
-						 n_, 
-						 parametric_dist_,
-						 risk_partitioning_objective_,
-						 use_rational_optimization_);
-  }
-  else if (parametric_dist_ == objective_fn::Poisson) {
-    context_ = std::make_unique<PoissonContext>(a_, 
-						b_, 
-						n_,
-						parametric_dist_,
-						risk_partitioning_objective_,
-						use_rational_optimization_);
-  }
-  else if (parametric_dist_ == objective_fn::RationalScore) {
-    context_ = std::make_unique<RationalScoreContext>(a_, 
-						      b_, 
-						      n_,
-						      parametric_dist_,
-						      risk_partitioning_objective_,
-						      use_rational_optimization_);
-  }
-  else {
-    throw distributionException();
-  }
-  
+  // create context
+  createContext();
+    
   // Initialize matrix
   maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
   nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
@@ -328,8 +275,8 @@ DPSolver::reorder_subsets(std::vector<std::vector<int> >& subsets,
     score_by_subsets_s[i] = score_by_subsets[ind[i]];
   }
 
-  std::copy(subsets_s.begin(), subsets_s.end(), subsets.begin());
-  std::copy(score_by_subsets_s.begin(), score_by_subsets_s.end(), score_by_subsets.begin());
+  std::copy(subsets_s.cbegin(), subsets_s.cend(), subsets.begin());
+  std::copy(score_by_subsets_s.cbegin(), score_by_subsets_s.cend(), score_by_subsets.begin());
 		   
   
 }
@@ -352,8 +299,8 @@ DPSolver::optimize() {
   }
 
   // adjust cumulative score
-  optimal_score_ -= compute_ambient_score(std::accumulate(a_.begin(), a_.end(), 0.),
-					  std::accumulate(b_.begin(), b_.end(), 0.));
+  optimal_score_ -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
+					  std::accumulate(b_.cbegin(), b_.cend(), 0.));
 }
 
 std::vector<std::vector<int> >
@@ -367,7 +314,7 @@ DPSolver::get_optimal_score_extern() const {
     return optimal_score_;
   }
   else {
-    return std::accumulate(score_by_subset_.begin()+1, score_by_subset_.end(), 0.);
+    return std::accumulate(score_by_subset_.cbegin()+1, score_by_subset_.cend(), 0.);
   }
 }
 
@@ -375,3 +322,32 @@ std::vector<float>
 DPSolver::get_score_by_subset_extern() const {
   return score_by_subset_;
 }
+
+void
+DPSolver::print_maxScore_() {
+
+  for (int i=0; i<n_; ++i) {
+    std::copy(maxScore_[i].cbegin(), maxScore_[i].cend(), std::ostream_iterator<float>(std::cout, " "));
+    std::cout << std::endl;
+  }
+}
+
+void
+DPSolver::print_nextStart_() {
+  for (int i=0; i<n_; ++i) {
+    std::copy(nextStart_[i].cbegin(), nextStart_[i].cend(), std::ostream_iterator<int>(std::cout, " "));
+    std::cout << std::endl;
+  }
+}
+
+float
+DPSolver::compute_score(int i, int j) {
+  return context_->compute_score(i, j);
+}
+
+float
+DPSolver::compute_ambient_score(float a, float b) {
+  return context_->compute_ambient_score(a, b);
+}
+
+

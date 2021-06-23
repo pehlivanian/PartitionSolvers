@@ -20,6 +20,24 @@ using namespace Objectives;
 
 class DPSolver {
 public:
+  DPSolver(std::vector<float> a,
+	   std::vector<float> b,
+	   int T,
+	   objective_fn parametric_dist=objective_fn::Gaussian,
+	   bool risk_partitioning_objective=false,
+	   bool use_rational_optimization=false
+	   ) :
+    n_{static_cast<int>(a.size())},
+    T_{T},
+    a_{a},
+    b_{b},
+    optimal_score_{0.},
+    parametric_dist_{parametric_dist},
+    risk_partitioning_objective_{risk_partitioning_objective},
+    use_rational_optimization_{use_rational_optimization}
+    
+  { _init(); }
+
   DPSolver(int n,
 	   int T,
 	   std::vector<float> a,
@@ -73,6 +91,7 @@ private:
     }
   }
   void create();
+  void createContext();
   void create_multiple_clustering_case();
   void optimize();
   void optimize_multiple_clustering_case();

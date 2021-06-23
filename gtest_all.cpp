@@ -293,7 +293,6 @@ TEST(DPSolverTest, OptimalityTestWithRandomPartitions) {
       auto context = PoissonContext(a,
 				    b,
 				    n,
-				    objective_fn::Poisson,
 				    true,
 				    false);
 

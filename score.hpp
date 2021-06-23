@@ -34,7 +34,6 @@ namespace Objectives {
     int n_;
     std::vector<std::vector<float> > a_sums_;
     std::vector<std::vector<float> > b_sums_;
-    objective_fn parametric_dist_;
     bool risk_partitioning_objective_;
     bool use_rational_optimization_;
     std::string name_;
@@ -43,7 +42,6 @@ namespace Objectives {
     ParametricContext(std::vector<float> a, 
 		      std::vector<float> b, 
 		      int n, 
-		      objective_fn parametric_dist,
 		      bool risk_partitioning_objective,
 		      bool use_rational_optimization,
 		      std::string name
@@ -51,7 +49,6 @@ namespace Objectives {
       a_{a},
       b_{b},
       n_{n},
-      parametric_dist_{parametric_dist},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
       name_{name}
@@ -105,12 +102,10 @@ namespace Objectives {
     PoissonContext(std::vector<float> a, 
 		   std::vector<float> b, 
 		   int n, 
-		   objective_fn parametric_dist,
 		   bool risk_partitioning_objective,
 		   bool use_rational_optimization) : ParametricContext(a,
 								       b,
 								       n,
-								       parametric_dist,
 								       risk_partitioning_objective,
 								       use_rational_optimization,
 								       "Poisson")
@@ -166,12 +161,10 @@ namespace Objectives {
     GaussianContext(std::vector<float> a, 
 		    std::vector<float> b, 
 		    int n, 
-		    objective_fn parametric_dist,
 		    bool risk_partitioning_objective,
 		    bool use_rational_optimization) : ParametricContext(a,
 									b,
 									n,
-									parametric_dist,
 									risk_partitioning_objective,
 									use_rational_optimization,
 									"Gaussian")
@@ -232,12 +225,10 @@ namespace Objectives {
     RationalScoreContext(std::vector<float> a,
 			 std::vector<float> b,
 			 int n,
-			 objective_fn parametric_dist,
 			 bool risk_partitioning_objective,
 			 bool use_rational_optimization) : ParametricContext(a,
 									     b,
 									     n,
-									     parametric_dist,
 									     risk_partitioning_objective,
 									     use_rational_optimization,
 									     "RationalScore")
