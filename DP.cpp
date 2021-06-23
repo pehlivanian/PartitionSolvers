@@ -71,96 +71,6 @@ DPSolver::createContext() {
   }
 }
 
-void
-DPSolver::create_multiple_clustering_case() {
-  // reset optimal_score_
-  optimal_score_ = 0.;
-
-  // create context
-  createContext();
-
-  // sort vectors by priority function G(x,y) = x/y
-  sort_by_priority(a_, b_);
-
-  // Initialize LTSSSolver for t = 2 case
-  LTSSSolver_ = std::make_unique<LTSSSolver>(n_, a_, b_, parametric_dist_);
-
-  // Initialize matrix
-  maxScore_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
-  maxScore_sec_ = std::vector<std::vector<float> >(n_, std::vector<float>(T_+1, std::numeric_limits<float>::lowest()));
-  nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
-  nextStart_sec_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
-  subsets_ = std::vector<std::vector<int> >(T_, std::vector<int>());
-  score_by_subset_ = std::vector<float>(T_, 0.);
-
-  // Fill in first,second columns corresponding to T = 0,1
-  for(int j=0; j<2; ++j) {
-    for (int i=0; i<n_; ++i) {
-      maxScore_[i][j] = 0.;
-      nextStart_[i][j] = (j==0)?-1:n_;
-      maxScore_sec_[i][j] = (j==0)?0.:compute_score(i,n_);
-      nextStart_sec_[i][j] = (j==0)?-1:n_;
-    }
-  }
-
-  std::vector<float> a_atten, b_atten;
-  for (int i=0; i<n_; ++i) {
-    std::copy(a_.cbegin()+i, a_.cend(), std::back_inserter(a_atten));
-    std::copy(b_.cbegin()+i, b_.cend(), std::back_inserter(b_atten));	      
-    LTSSSolver_.reset(new LTSSSolver(n_-i, a_atten, b_atten, parametric_dist_));
-    maxScore_[i][2] =  LTSSSolver_->get_optimal_score_extern();
-    if ((LTSSSolver_->get_optimal_subset_extern()[0] == 0) && (LTSSSolver_->get_optimal_subset_extern().size() != n_-i)) {
-      int ind = LTSSSolver_->get_optimal_subset_extern().size()-1;
-      nextStart_[i][2] = LTSSSolver_->get_optimal_subset_extern()[ind]+i+1;
-    }
-    else {
-      nextStart_[i][2] = LTSSSolver_->get_optimal_subset_extern()[0]+i;
-    }
-    a_atten.clear(); b_atten.clear();
-  }
-
-  // Precompute partial sums
-  std::vector<std::vector<float> > partialSums;
-  partialSums = std::vector<std::vector<float> >(n_, std::vector<float>(n_, 0.));
-  for (int i=0; i<n_; ++i) {
-    for (int j=i; j<n_; ++j) {
-      partialSums[i][j] = compute_score(i, j);
-    }
-  }
-
-  // Fill in column-by-column from the left
-  float score, score_sec;
-  float maxScore, maxScore_sec;
-  int maxNextStart = -1, maxNextStart_sec = -1;
-  for(int j=2; j<=T_; ++j) {
-    for (int i=0; i<n_; ++i) {
-      maxScore = std::numeric_limits<float>::lowest();
-      maxScore_sec = std::numeric_limits<float>::lowest();
-      for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	score_sec = partialSums[i][k] + maxScore_sec_[k][j-1];
-	score = std::max(partialSums[i][k] + maxScore_[k][j-1], maxScore_sec_[k][j-1]);
-	if (score_sec > maxScore_sec) {
-	  maxScore_sec = score_sec;
-	  maxNextStart_sec = k;
-	}
-	if (score > maxScore) {
-	  maxScore = score;
-	  maxNextStart = k;
-	}
-      }
-      if (j > 2) {
-	maxScore_[i][j] = maxScore;
-	nextStart_[i][j] = maxNextStart;
-      }
-      maxScore_sec_[i][j] = maxScore_sec;
-      nextStart_sec_[i][j] = maxNextStart_sec;
-      // Only need the initial entry in last column
-      if (j == T_)
-	break;
-    }
-  }  
-}
-
 void 
 DPSolver::create() {
   // reset optimal_score_
@@ -219,38 +129,32 @@ DPSolver::create() {
 }
 
 void
-DPSolver::optimize_multiple_clustering_case() {
+DPSolver::optimize() {
   // Pick out associated maxScores element
-  int currentInd = 0, nextInd = 0, nextInd1 = 0;
+  int currentInd = 0, nextInd = 0;
   for (int t=T_; t>0; --t) {
-    float score_num1 = 0., score_den1 = 0.;
-    std::vector<int> subset;
-    // XXX
-    // Assume for this exercise that the j=1 set is the gap set
-    // (equivalently that f is increasing in x)
-    // nextInd1 = nextStart_[currentInd][t];
-    nextInd1 = nextStart_sec_[currentInd][t];
-    for (int i=currentInd; i<nextInd1; ++i) {
-      score_num1 += a_[i];
-      score_den1 += b_[i];
-      subset.push_back(priority_sortind_[i]);
+    float score_num = 0., score_den = 0.;
+    nextInd = nextStart_[currentInd][t];
+    for (int i=currentInd; i<nextInd; ++i) {
+      subsets_[T_-t].push_back(priority_sortind_[i]);
+      score_num += a_[i];
+      score_den += b_[i];
     }
-    subsets_[T_-t] = subset;
-    score_by_subset_[T_-t] = compute_ambient_score(score_num1, score_den1);
-    nextInd = nextInd1;
+    score_by_subset_[T_-t] = compute_ambient_score(score_num, score_den);
     optimal_score_ += score_by_subset_[T_-t];
     currentInd = nextInd;
-    
-    // Early stopping, this could correspond to an optimal single subset being
-    // the entire set at the LTSS (t = 2) stage
-    if ((t > 1) && (currentInd == n_)) {
-      break;
-    }
   }
 
   // reorder subsets
-  reorder_subsets(subsets_, score_by_subset_);
+  if (!risk_partitioning_objective_) {
+    reorder_subsets(subsets_, score_by_subset_);
+  }
 
+  // adjust cumulative score
+  if (risk_partitioning_objective_) {
+    optimal_score_ -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
+					    std::accumulate(b_.cbegin(), b_.cend(), 0.));
+  }
 }
 
 void
@@ -279,28 +183,6 @@ DPSolver::reorder_subsets(std::vector<std::vector<int> >& subsets,
   std::copy(score_by_subsets_s.cbegin(), score_by_subsets_s.cend(), score_by_subsets.begin());
 		   
   
-}
-
-void
-DPSolver::optimize() {
-  // Pick out associated maxScores element
-  int currentInd = 0, nextInd = 0;
-  for (int t=T_; t>0; --t) {
-    float score_num = 0., score_den = 0.;
-    nextInd = nextStart_[currentInd][t];
-    for (int i=currentInd; i<nextInd; ++i) {
-      subsets_[T_-t].push_back(priority_sortind_[i]);
-      score_num += a_[i];
-      score_den += b_[i];
-    }
-    score_by_subset_[T_-t] = compute_ambient_score(score_num, score_den);
-    optimal_score_ += score_by_subset_[T_-t];
-    currentInd = nextInd;
-  }
-
-  // adjust cumulative score
-  optimal_score_ -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
-					  std::accumulate(b_.cbegin(), b_.cend(), 0.));
 }
 
 std::vector<std::vector<int> >

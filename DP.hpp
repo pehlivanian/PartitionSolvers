@@ -86,8 +86,8 @@ private:
       optimize();
     }
     else {
-      create_multiple_clustering_case();
-      optimize_multiple_clustering_case();
+      create();
+      optimize();
     }
   }
   void create();
