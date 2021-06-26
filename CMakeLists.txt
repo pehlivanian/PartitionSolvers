@@ -96,8 +96,8 @@ target_link_libraries(DP LTSS)
 # To compile swig c++ python bindings from command line #
 #########################################################
 # $ swig -c++ -python proto.i
-# $ g++ -std=c++11 -c -fPIC LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp LTSS.cpp proto_wrap.cxx -I/usr/include/python3.6
-# $ g++ -std=c++11 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp LTSS.cpp proto_wrap.cxx -I/usr/include/python3.6
+# $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
 
 # Test:
 # $ python Solver_ex.py

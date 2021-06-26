@@ -116,15 +116,15 @@ namespace Objectives {
   
     float compute_score_multclust(int i, int j) override {    
       // CHECK
-      float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
-      float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
+      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
+      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
       return (C>B)? C*std::log(C/B) + B - C : 0.;
     }
 
     float compute_score_riskpart(int i, int j) override {
       // CHECK
-      float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
-      float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
+      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
+      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
       return C*std::log(C/B);
     }
     
@@ -189,15 +189,15 @@ namespace Objectives {
   
     float compute_score_multclust(int i, int j) override {
       // CHECK
-      float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
-      float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
+      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
+      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
       return (C>B)? .5*(std::pow(C,2)/B + B) - C : 0.;
     }
   
     float compute_score_riskpart(int i, int j) override {
       // CHECK
-      float C = std::accumulate(a_.begin()+i, a_.begin()+j, 0.);
-      float B = std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
+      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
+      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
       return C*C/2./B;
     }
 
@@ -206,25 +206,39 @@ namespace Objectives {
       return (a>b)? .5*(std::pow(a,2)/b + b) - a : 0.;
     }
 
+    void compute_partial_sums() override {
+      float a_cum;
+      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+    
+      for (int i=0; i<n_; ++i) {
+	a_sums_[i][i] = 0.;
+	b_sums_[i][i] = 0.;
+      }
+
+      for (int i=0; i<n_; ++i) {
+	a_cum = -a_[i-1];
+	for (int j=i+1; j<=n_; ++j) {
+	  a_cum += a_[j-2];
+	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+	}
+      }  
+    }
+
     float compute_ambient_score_riskpart(float a, float b) override {
       // CHECK
       return a*a/2./b;
     }
 
-    void compute_partial_sums() override {
-      throw optimizationFlagException();
-    }
-
     float compute_score_multclust_optimized(int i, int j) override {
-      UNUSED(i);
-      UNUSED(j);
-      throw optimizationFlagException();
+      float score = (a_sums_[i][j] > b_sums_[i][j]) ? .5*(std::pow(a_sums_[i][j], 2)/b_sums_[i][j] + b_sums_[i][j]) - a_sums_[i][j] : 0.;
+      return score;
     }
     
     float compute_score_riskpart_optimized(int i, int j) override {
-      UNUSED(i);
-      UNUSED(j);
-      throw optimizationFlagException();
+      float score = a_sums_[i][j]*a_sums_[i][j]/2./b_sums_[i][j];
+      return score;
     }
 
   };
@@ -277,8 +291,8 @@ namespace Objectives {
     }
 
     float compute_score_multclust(int i, int j) override {
-      float score = std::pow(std::accumulate(a_.begin()+i, a_.begin()+j, 0.), 2) /
-	std::accumulate(b_.begin()+i, b_.begin()+j, 0.);
+      float score = std::pow(std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.), 2) /
+	std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
       return score;
     }
   

@@ -71,7 +71,8 @@ TEST(DPSolverTest, OptimizationFlag) {
     for (auto&el : b)
       el = distb(gen);
 
-    std::vector<objective_fn> objectives = {objective_fn::Poisson,
+    std::vector<objective_fn> objectives = {objective_fn::Gaussian,
+					    objective_fn::Poisson,
 					    objective_fn::RationalScore};
 
     for (auto objective : objectives) {
@@ -100,11 +101,6 @@ TEST(DPSolverTest, OptimizationFlag) {
 	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
       }    
     }
-
-    // ...throw otherwise
-    auto dp_gauss_unopt = DPSolver(n, T, a, b, objective_fn::Gaussian, false, false);
-    EXPECT_THROW(auto dp_gauss_opt = DPSolver(n, T, a, b, objective_fn::Gaussian, false, true), Objectives::optimizationFlagException);
-    EXPECT_THROW(auto dp_gauss_opt = DPSolver(n, T, a, b, objective_fn::Gaussian, true, true), Objectives::optimizationFlagException);
   }
 }
 
