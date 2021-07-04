@@ -63,6 +63,10 @@ target_link_libraries(DP_solver_test DP LTSS)
 add_executable(DP_ex DP_ex.cpp)
 target_link_libraries(DP_ex DP LTSS)
 
+# solver_timer
+add_executable(solver_timer solver_timer.cpp)
+target_link_libraries(solver_timer DP timer)
+
 # C++ executable gtest_all
 if (GTEST)
   add_executable(gtest_all gtest_all.cpp)
@@ -87,6 +91,7 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INCLUDE_PATH})
 
+add_library(timer OBJECT timer.cpp)
 add_library(DP OBJECT DP.cpp)
 add_library(LTSS OBJECT LTSS.cpp)
 
