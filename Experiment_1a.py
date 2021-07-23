@@ -4,6 +4,12 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
+NUM_EXPERIMENTS = 10000 # 100
+NUM_EXPERIMENTS_PER_EPSILON = 500 # 100
+NUM_THRESHOLD_EXPERIMENTS = 1000 # 100
+N = 2500 # 500
+
+
 def ranking_quality(m):
   rq = 0
   num_rows = m.shape[0]
@@ -17,9 +23,9 @@ def ranking_quality(m):
   return rq/(np.sum(m)*np.sum(m))
 
 def bootstrap_95th_percentile(null_scores):
-  thresholds = np.zeros(100)
-  for i in range(100):
-    thresholds[i] = np.quantile(rng.choice(null_scores, size=500, replace=True),0.95)
+  thresholds = np.zeros(NUM_THRESHOLD_EXPERIMENTS)
+  for i in range(NUM_THRESHOLD_EXPERIMENTS):
+    thresholds[i] = np.quantile(rng.choice(null_scores, size=N, replace=True),0.95)
   thresholds = np.sort(thresholds)
   return thresholds
 
@@ -31,10 +37,10 @@ b = proto.FArray()                  # wrapper for C++ float array type
 ################################################################
 # null experiments
 rng = np.random.default_rng(12345)
-num_null_experiments = 500
+num_null_experiments = NUM_EXPERIMENTS
 null_scores = np.zeros([num_null_experiments,5])
 for i in range(num_null_experiments):
-    b = rng.poisson(100,size=500).astype(float)
+    b = rng.poisson(100,size=N).astype(float)
     a = rng.poisson(b).astype(float)
     result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()[1]
     result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()[1]
@@ -68,18 +74,21 @@ thresholds_df.to_csv("null_thresholds.csv")
 # experiment 1: three partitions
 #
 #rng = np.random.default_rng(54321)
-num_experiments_per_epsilon = 100
+num_experiments_per_epsilon = NUM_EXPERIMENTS_PER_EPSILON
 num_epsilon_values = 11
 exp1_scores = np.zeros([num_experiments_per_epsilon*num_epsilon_values,4])
 exp1_ranking_quality = np.zeros([num_epsilon_values,4])
 for j in range(num_epsilon_values):
+    n1 = int(N/3)
+    n2 = round(N/3)
+    n3 = N-n1-n2    
     theepsilon = 0.01*j
     ranking_quality_rp2 = 0
     ranking_quality_rp3 = 0
     ranking_quality_rp10 = 0
     for i in range(num_experiments_per_epsilon):
-        b = rng.poisson(100,size=500).astype(float)
-        q = np.concatenate([np.full(167,1.0-theepsilon),np.full(166,1.0),np.full(167,1.0+theepsilon)])
+        b = rng.poisson(100,size=N).astype(float)
+        q = np.concatenate([np.full(n1,1.0-theepsilon),np.full(n2,1.0),np.full(n3,1.0+theepsilon)])
         a = rng.poisson(q*b).astype(float)
         all_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()
         all_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()
@@ -93,23 +102,23 @@ for j in range(num_epsilon_values):
 
         for k in range(2):
             thepartition = np.array(all_rp2[0][k])
-            confusion_rp2[0,k] = len(thepartition[thepartition <= 166])
-            confusion_rp2[1,k] = len(thepartition[(thepartition >= 167) & (thepartition <= 332)])
-            confusion_rp2[2,k] = len(thepartition[thepartition >= 333])
+            confusion_rp2[0,k] = len(thepartition[thepartition <= n1])
+            confusion_rp2[1,k] = len(thepartition[(thepartition >= n1+1) & (thepartition <= n1+n2)])
+            confusion_rp2[2,k] = len(thepartition[thepartition >= n1+n2+1])
         ranking_quality_rp2 += ranking_quality(confusion_rp2)
             
         for k in range(3):
             thepartition = np.array(all_rp3[0][k])
-            confusion_rp3[0,k] = len(thepartition[thepartition <= 166])
-            confusion_rp3[1,k] = len(thepartition[(thepartition >= 167) & (thepartition <= 332)])
-            confusion_rp3[2,k] = len(thepartition[thepartition >= 333])
+            confusion_rp3[0,k] = len(thepartition[thepartition <= n1])
+            confusion_rp3[1,k] = len(thepartition[(thepartition >= n1+1) & (thepartition <= n1+n2)])
+            confusion_rp3[2,k] = len(thepartition[thepartition >= n1+n2+1])
         ranking_quality_rp3 += ranking_quality(confusion_rp3)
 
         for k in range(10):
             thepartition = np.array(all_rp10[0][k])
-            confusion_rp10[0,k] = len(thepartition[thepartition <= 166])
-            confusion_rp10[1,k] = len(thepartition[(thepartition >= 167) & (thepartition <= 332)])
-            confusion_rp10[2,k] = len(thepartition[thepartition >= 333])
+            confusion_rp10[0,k] = len(thepartition[thepartition <= n1])
+            confusion_rp10[1,k] = len(thepartition[(thepartition >= n1+1) & (thepartition <= n1+n2)])
+            confusion_rp10[2,k] = len(thepartition[thepartition >= n1+n2+1])
         ranking_quality_rp10 += ranking_quality(confusion_rp10)
 
         theindex = i + j*num_experiments_per_epsilon

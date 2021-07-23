@@ -4,6 +4,11 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
+NUM_EXPERIMENTS = 10000 # 100
+NUM_EXPERIMENTS_PER_EPSILON = 500 # 10
+NUM_THRESHOLD_EXPERIMENTS = 1000 # 100
+N = 500 # 500
+
 def compute_prob_sup(v1,v2):
    prob_sup = 0.
    thelength = len(v1)
@@ -38,9 +43,9 @@ def ranking_quality(m):
   return rq/(np.sum(m)*np.sum(m))
 
 def bootstrap_95th_percentile(null_scores):
-  thresholds = np.zeros(100)
-  for i in range(100):
-    thresholds[i] = np.quantile(rng.choice(null_scores, size=500, replace=True),0.95)
+  thresholds = np.zeros(NUM_THRESHOLD_EXPERIMENTS)
+  for i in range(NUM_THRESHOLD_EXPERIMENTS):
+    thresholds[i] = np.quantile(rng.choice(null_scores, size=N, replace=True),0.95)
   thresholds = np.sort(thresholds)
   return thresholds
 
@@ -52,10 +57,10 @@ b = proto.FArray()                  # wrapper for C++ float array type
 ################################################################
 # null experiments
 rng = np.random.default_rng(12345)
-num_null_experiments = 500
+num_null_experiments = NUM_EXPERIMENTS
 null_scores = np.zeros([num_null_experiments,5])
 for i in range(num_null_experiments):
-    b = rng.poisson(100,size=500).astype(float)
+    b = rng.poisson(100,size=N).astype(float)
     a = rng.poisson(b).astype(float)
     result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()[1]
     result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()[1]
@@ -88,7 +93,7 @@ thresholds_df.to_csv("null_thresholds.csv")
 ################################################################
 # experiment 4: multiple cluster detection, two clusters
 #
-num_experiments_per_q = 100
+num_experiments_per_q = NUM_EXPERIMENTS_PER_EPSILON
 exp4_scores = np.zeros([num_experiments_per_q*60,6])
 exp4_precision = np.zeros([60,6])
 exp4_recall = np.zeros([60,6])
@@ -105,10 +110,12 @@ for q1 in np.linspace(1.01,1.2,20):
     precision_mcd2 = recall_mcd2 = overlap_mcd2 = primary_mcd2 = secondary_mcd2 = distinguish_mcd2 = 0
     precision_mcd3 = recall_mcd3 = overlap_mcd3 = primary_mcd3 = secondary_mcd3 = distinguish_mcd3 = 0
     for i in range(num_experiments_per_q):
-        b = rng.poisson(100,size=500).astype(float)
-        q = np.concatenate([np.full(400,1.0),
-                            np.full(50,q2),
-                            np.full(50,q1)])
+        n1 = int(N/10)
+        n2 = N-n1-n1       
+        b = rng.poisson(100,size=N).astype(float)
+        q = np.concatenate([np.full(n2,1.0),
+                            np.full(n1,q2),
+                            np.full(n1,q1)])
         a = rng.poisson(q*b).astype(float)
         all_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()
         all_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()
@@ -151,12 +158,12 @@ for q1 in np.linspace(1.01,1.2,20):
         for k in range(3):
             thepartition_rp = np.array(all_rp3[0][k])
             thepartition_mcd = np.array(all_mcd3[0][k])
-            confusion_rp3[0,k] = len(thepartition_rp[(thepartition_rp < 400)])
-            confusion_rp3[1,k] = len(thepartition_rp[(thepartition_rp >= 400) & (thepartition_rp < 450)])
-            confusion_rp3[2,k] = len(thepartition_rp[(thepartition_rp >= 450)])
-            confusion_mcd3[0,k] = len(thepartition_mcd[(thepartition_mcd < 400)])
-            confusion_mcd3[1,k] = len(thepartition_mcd[(thepartition_mcd >= 400) & (thepartition_mcd < 450)])
-            confusion_mcd3[2,k] = len(thepartition_mcd[(thepartition_mcd >= 450)])
+            confusion_rp3[0,k] = len(thepartition_rp[(thepartition_rp < n2)])
+            confusion_rp3[1,k] = len(thepartition_rp[(thepartition_rp >= n2) & (thepartition_rp < n1+n2)])
+            confusion_rp3[2,k] = len(thepartition_rp[(thepartition_rp >= n1+n2)])
+            confusion_mcd3[0,k] = len(thepartition_mcd[(thepartition_mcd < n2)])
+            confusion_mcd3[1,k] = len(thepartition_mcd[(thepartition_mcd >= n2) & (thepartition_mcd < n1+n2)])
+            confusion_mcd3[2,k] = len(thepartition_mcd[(thepartition_mcd >= n1+n2)])
         theprecision,therecall,theoverlap,theprimary,thesecondary,thedistinguish = overlap_coeff(confusion_rp3)
         precision_rp3 += theprecision
         recall_rp3 += therecall

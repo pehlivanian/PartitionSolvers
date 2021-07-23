@@ -145,7 +145,6 @@ DPSolver::optimize() {
     currentInd = nextInd;
   }
 
-  // reorder subsets
   if (!risk_partitioning_objective_) {
     reorder_subsets(subsets_, score_by_subset_);
   }

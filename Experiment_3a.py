@@ -4,6 +4,11 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
+NUM_EXPERIMENTS = 10000 # 100
+NUM_EXPERIMENTS_PER_EPSILON = 500 # 100
+NUM_THRESHOLD_EXPERIMENTS = 1000 # 100
+N = 2500 # 500
+
 def ranking_quality(m):
   rq = 0
   num_rows = m.shape[0]
@@ -17,9 +22,9 @@ def ranking_quality(m):
   return rq/(np.sum(m)*np.sum(m))
 
 def bootstrap_95th_percentile(null_scores):
-  thresholds = np.zeros(100)
-  for i in range(100):
-    thresholds[i] = np.quantile(rng.choice(null_scores, size=500, replace=True),0.95)
+  thresholds = np.zeros(NUM_THRESHOLD_EXPERIMENTS)
+  for i in range(NUM_THRESHOLD_EXPERIMENTS):
+    thresholds[i] = np.quantile(rng.choice(null_scores, size=N, replace=True),0.95)
   thresholds = np.sort(thresholds)
   return thresholds
 
@@ -31,10 +36,10 @@ b = proto.FArray()                  # wrapper for C++ float array type
 ################################################################
 # null experiments
 rng = np.random.default_rng(12345)
-num_null_experiments = 500
+num_null_experiments = NUM_EXPERIMENTS
 null_scores = np.zeros([num_null_experiments,5])
 for i in range(num_null_experiments):
-    b = rng.poisson(100,size=500).astype(float)
+    b = rng.poisson(100,size=N).astype(float)
     a = rng.poisson(b).astype(float)
     result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()[1]
     result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()[1]
@@ -67,14 +72,14 @@ thresholds_df.to_csv("null_thresholds.csv")
 ################################################################
 # experiment 3: no partitions; all q are uniform on [1-eps, 1+eps]
 #
-num_experiments_per_epsilon = 100
+num_experiments_per_epsilon = NUM_EXPERIMENTS_PER_EPSILON
 num_epsilon_values = 11
 exp3_scores = np.zeros([num_experiments_per_epsilon*num_epsilon_values,4])
 for j in range(num_epsilon_values):
     theepsilon = 0.01*j
     for i in range(num_experiments_per_epsilon):
-        b = rng.poisson(100,size=500).astype(float)
-        q = rng.uniform(1.0-theepsilon,1.0+theepsilon,size=500)
+        b = rng.poisson(100,size=N).astype(float)
+        q = rng.uniform(1.0-theepsilon,1.0+theepsilon,size=N)
         a = rng.poisson(q*b).astype(float)
         all_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()
         all_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()
