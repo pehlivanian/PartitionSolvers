@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import pandas as pd
 from dbfread import DBF
@@ -6,6 +7,9 @@ import solverSWIG_LTSS
 import proto
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
+
+num_partitions = int(sys.argv[1])
+cancer_type = sys.argv[2]
 
 def set_display(max_columns=100, max_rows=500, max_colwidth=64, prec=6):
     import pandas as pd
@@ -23,18 +27,22 @@ data = pd.read_csv("./NYS_data/NYC Cancer Rates 2013-2017.csv")
 
 g, h, geoid = list(), list(), list()
 for i,r in data.iterrows():
-    # g.append(r.Breast_observed)
-    # h.append(r.Breast_expected)
-    g.append(r.Prostate_observed)
-    h.append(r.Prostate_expected)
+    if cancer_type == 'breast':
+        g.append(r.Breast_observed)
+        h.append(r.Breast_expected)
+    elif cancer_type == 'prostate':
+        g.append(r.Prostate_observed)
+        h.append(r.Prostate_expected)
+    elif cancer_type == 'lung':
+        g.append(r.Lung_observed)
+        h.append(r.Lung_expected)
     geoid.append(int(r.geoid))
 
 g_c = np.asarray(g)
 h_c = np.asarray(h)
 
-num_partitions = 8
 distribution = 1
-risk_partitioning_objective = True
+risk_partitioning_objective = False
 optimized = True
 
 all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
@@ -45,9 +53,11 @@ all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                           optimized)()
 
 qs = [np.sum(g_c[list(i)])/np.sum(h_c[list(i)]) for i in all_results[0]]
+proportions = [len(i)/len(g) for i in all_results[0]]
 sortind = np.argsort(qs)
 sorted_results = [all_results[0][i] for i in sortind]
 sorted_qs = [qs[i] for i in sortind]
+sorted_proportions = [proportions[i] for i in sortind]
 # sorted_qs.reverse()
 all_results = (sorted_results, all_results[1])
 
@@ -135,7 +145,7 @@ for from_geo in dict_to_add:
 res=pd.concat([res1,res2],ignore_index=True).astype({'cluster':int})
 
 
-def visualization(result, cancer_type='breast'):
+def visualization(result, cancer_type='breast', risk_partitioning_objective=True):
     import shapefile
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
@@ -162,15 +172,23 @@ def visualization(result, cancer_type='breast'):
         cns.append(recs[nshp][1])
     cns = np.array(cns)
 
-    cmap = plt.cm.Spectral(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # XXX
+    # cmap = plt.cm.Spectral(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    cmap = plt.cm.Blues(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.Purples(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.Reds(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.Greens(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.Greys(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.plasma(np.linspace(0,1,max(result.iloc[:,-1])+1))
+    # cmap = plt.cm.Oranges(np.linspace(0,1,max(result.iloc[:,-1])+1))        
+    cmap[0] = [1., 1., 1., 1.]
 
     fig=plt.figure(figsize = (10,10)) 
     fig.add_subplot(111)
     ax = fig.gca()
-
-    import pdb; pdb.set_trace()
-    
-    for nshp in range(Nshp):
+    # XXX
+    for nshp in list(range(Nshp))[1:]:
+    # for nshp in list(range(Nshp)):        
         if int(test.iloc[nshp,-1]) in nyc_geoid:
             k=result[result.geoid==int(test.iloc[nshp,-1])].iloc[0,-1]
             c=cmap[k][0:3]  
@@ -180,23 +198,34 @@ def visualization(result, cancer_type='breast'):
             par     = list(prt) + [pts.shape[0]]
             for pij in range(len(prt)):
                 ptchs.append(Polygon(pts[par[pij]:par[pij+1]]))
-            ax.add_collection(PatchCollection(ptchs,facecolor=c,edgecolor='k', linewidths=.5))
+            pc = PatchCollection(ptchs, facecolor=c,edgecolor='k',linewidths=.5)
+            ax.add_collection(pc)
+            ax.add_collection(PatchCollection(ptchs,facecolor=c,edgecolor='k', linewidths=.5))            
         ax.axis('scaled')
 
     import matplotlib.patches as mpatches
     clum_num=len(result.iloc[:,-1].unique())
 
     handles=[]
-    for t in range(clum_num):
-        locals()["patch_{}".format(t)] = mpatches.Patch(color=cmap[t][0:3] , label='Cluster'+str(t+1)+' q '+str(round(sorted_qs[t], 2)))
+    # XXX
+    # for t in list(range(clum_num)):    
+    for t in list(range(clum_num))[1:]:
+        props = str(round(100.*sorted_proportions[t],2))
+        props = props + '0'*(2-len(props.split('.;')[-1]))
+        locals()["patch_{}".format(t)] = mpatches.Patch(color=cmap[t][0:3] ,
+                                                        label='Cluster '+str(t+1-1)+': (q = '+str(round(sorted_qs[t], 2))
+                                                        +', '
+                                                        +props
+                                                        +'% of census tracts)')
         handles.append(locals()["patch_{}".format(t)])
     #plt.axis('off')
     plt.xticks([], [])
     plt.yticks([],[])
-    plt.title('NYC {} cancer incidence 2013-2017'.format(cancer_type))
+    algo_type = 'risk_part' if risk_partitioning_objective else 'MULT'    
+    plt.title('NYC {} cancer incidence 2013-2017 {} t = {} partitions'.format(cancer_type, algo_type, num_partitions))
     plt.legend(handles=handles,loc='upper left',prop={'size':8})
     plt.pause(1e-3)
-    plt.savefig('NYC_{}_{}_risk_part.pdf'.format(cancer_type, num_partitions))
+    plt.savefig('NYC_{}_{}_{}_whitebkgnd.pdf'.format(cancer_type, num_partitions, algo_type))
     plt.close()
 
-visualization(res)
+visualization(res, cancer_type=cancer_type, risk_partitioning_objective=risk_partitioning_objective)

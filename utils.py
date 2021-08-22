@@ -109,8 +109,8 @@ def Bell_n_k(n, k):
     if (k == 1 or k == n): 
         return 1
 
-    return (k * PartitionTreeOptimizer._Bell_n_k(n - 1, k) + 
-                PartitionTreeOptimizer._Bell_n_k(n - 1, k - 1))
+    return (k * Bell_n_k(n - 1, k) + 
+                Bell_n_k(n - 1, k - 1))
 
 def Mon_n_k(n, k):
     return comb(n-1, k-1, exact=True)
