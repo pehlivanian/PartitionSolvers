@@ -2,6 +2,7 @@ from functools import partial
 import importlib
 import numpy as np
 from catboost import CatBoostClassifier, Pool
+from stree import Stree
 import sklearn.base
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils.metaestimators import if_delegate_has_method
@@ -52,11 +53,15 @@ class InductiveClassifier(InductiveBase):
         self.fit()
 
     @if_delegate_has_method(delegate='classifier_')
-    def predict(self, X):
-        yhat0 = self.classifier_.predict(X.get_value())
+    def predict(self, X, numpy_format=False):
+        if numpy_format:
+            yhat0 = self.classifier_.predict(X)
+            return np.array([self.class_to_val[x] for x in yhat0]).reshape(-1, 1).astype(theano.config.floatX)
+        yhat0 = self.classifier_.predict(X.get_value())        
         yhat = T.as_tensor(np.array([self.class_to_val[x]
                                      for x in yhat0]).reshape(-1, 1).astype(theano.config.floatX))            
         return yhat
+
 
 class CatBoostImpliedTree(CatBoostClassifier):
     def __init__(self, X=None, y=None, max_depth=2):
@@ -73,21 +78,26 @@ class CatBoostImpliedTree(CatBoostClassifier):
         y_hat = T.as_tensor(y_hat0.reshape(-1,1)).astype(theano.config.floatX)
         return y_hat
 
+class STreeImpliedTree(Stree):
+    def __init__(self, X=None, y=None, max_depth=2):
+        super(STreeImpliedTree, self).__init__(random_state=random_state,
+                                               max_features='auto')
+        self.fit(X, y)
+
+    def predict(self, X):
+        y_hat0 = super(STreeImpliedTree, self).predict(X.get_value())
+        y_hat = T.as_tensor(y_hat0.reshape(-1,1)).astype(theano.config.floatX)
+        return y_hat
+
 class LeafOnlyTree(object):
     def __init__(self, X=None, y=None):
         self.X = X
         self.y = y
 
-    def predict(self, X):
-        return T.as_tensor(self.y.astype(theano.config.floatX))
 
     def predict(self, X):
-        # XXX
-        import pdb; pdb.set_trace()
-        y_hat0 = super(OLSImpliedTree, self).predict(X.get_value())
-        y_hat = T.as_tensor(y_hat0.astype(theano.config.floatX))
-        return y_hat
-
+        return self.y
+    
 def classifierFactory(clz, **modelArgs):
     if isinstance(clz(), sklearn.base.RegressorMixin):
         return partial(InductiveRegressor, clz(**modelArgs))

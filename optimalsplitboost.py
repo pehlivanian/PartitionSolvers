@@ -1,5 +1,8 @@
 import heapq
 import numpy as np
+from functools import partial
+from itertools import islice
+import multiprocessing
 import sklearn.base
 import sklearn.tree
 import theano
@@ -19,6 +22,17 @@ class Distribution:
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.WARN)
 
+def gen_blocks(num_items, block_size):
+    bin_ends = list(range(0,num_items, int(num_items/block_size)))
+    bin_ends = bin_ends + [num_items] if num_items/block_size else bin_ends
+    islice_on = list(zip(bin_ends[:-1], bin_ends[1:]))
+    
+    slices = [list(islice(range(num_items), *ind)) for ind in islice_on]
+    return slices
+
+class end_task(object):
+    pass
+
 class OptimalSplitGradientBoostingClassifier(object):
     def __init__(self,
                  X,
@@ -34,7 +48,7 @@ class OptimalSplitGradientBoostingClassifier(object):
                  solver_type='linear_hessian',
                  learning_rate=0.1,
                  distiller=classifier.classifierFactory(sklearn.tree.DecisionTreeClassifier),
-                 use_closed_form_differentials=True,
+                 use_closed_form_differentials=False,
                  risk_partitioning_objective=False,
                  ):
         ############
@@ -143,11 +157,76 @@ class OptimalSplitGradientBoostingClassifier(object):
         classifier = self.implied_trees[classifier_ind]
         return classifier.predict(self.X)
 
+    class predict_task(object):
+        def __init__(self, i, X0, classifier):
+            self.i = i
+            self.X0 = X0
+            self.classifier = classifier
+
+        def __call__(self):
+            return self._task(self.X0)
+
+        def _task(self, X0):
+            return self.classifier.predict(X0, numpy_format=True)
+
+    class predict_worker(multiprocessing.Process):
+        def __init__(self, task_queue, result_queue):
+            multiprocessing.Process.__init__(self)
+            self.task_queue = task_queue
+            self.result_queue = result_queue
+
+        def run(self):
+            proc_name = self.name
+            while True:
+                task = self.task_queue.get()
+                if isinstance(task, end_task):
+                    self.task_queue.task_done()
+                    break
+                result = task()
+                self.task_queue.task_done()
+                self.result_queue.put(result)
+
     def predict_from_input(self, X0):
+        NUM_BLOCKS = min(20, self.curr_classifier)
+        CONCURRENCY = 10
+
+        y_hat = theano.shared(name='y_hat', value=np.zeros((X0.shape[0], 1)))
+        slices = gen_blocks(self.curr_classifier, NUM_BLOCKS)
+
+        for slice_ind, slice in enumerate(slices):
+            tasks = multiprocessing.JoinableQueue()
+            results = multiprocessing.Queue()
+            workers = [self.predict_worker(tasks, results) for _ in range(min([CONCURRENCY, self.curr_classifier]))]
+        
+            for worker in workers:
+                worker.start()
+            
+            for ind in slice:
+                implied_tree = self.implied_trees[ind]
+                tasks.put(self.predict_task(ind, X0, implied_tree))
+
+            for _ in workers:
+                tasks.put(end_task())
+            
+            tasks.join()
+
+            allResults = list()
+            while not results.empty():
+                result = results.get(block=True)
+                y_hat += theano.shared(value=result.astype(theano.config.floatX))
+                # logging.warn('QUEUE SIZE: {}'.format(results.qsize()))
+            logging.warn('FINISHED WITH SLICE: {}/{}'.format(slice_ind, -1+len(slices)))
+            del tasks
+            del results
+            del workers
+
+        return y_hat
+        
+    def predict_from_input_serialized(self, X0):
         X = theano.shared(value=X0.astype(theano.config.floatX))
         y_hat = theano.shared(name='y_hat', value=np.zeros((X0.shape[0], 1)))
         for classifier_ind in range(self.curr_classifier):
-            y_hat += self.implied_trees[classifier_ind].predict(X)
+            y_hat += self.implied_trees[classifier_ind].predict(X, numpy_format=False)
         return y_hat
         
     def predict_old(self):
@@ -204,6 +283,87 @@ class OptimalSplitGradientBoostingClassifier(object):
                                                                       leaf_values))()))
             # Summary statistics mid-training
         print('Training finished')
+    def find_best_optimal_split_old(self, g, h, num_partitions):
+        ''' Method: results contains the optimal partitions for all partition sizes in
+            [1, num_partitions]. We take each, from the optimal_split_tree from an
+            inductive fitting of the classifier, then look at the loss of the new
+            predictor (current predictor + optimal_split_tree predictor). The minimal
+            loss wins.
+        '''
+
+        logging.warn('NUM_PARTITIONS: {}'.format(num_partitions))
+        sweep_mode = True
+        results = solverSWIG_DP.OptimizerSWIG(num_partitions,
+                                              g,
+                                              h,
+                                              objective_fn=Distribution.RATIONALSCORE,
+                                              risk_partitioning_objective=self.risk_partitioning_objective,
+                                              use_rational_optimization=True,
+                                              sweep_mode=sweep_mode)()
+
+        logging.info('found optimal partition')
+
+        npart = T.scalar('npart')
+        lv = T.dmatrix('lv')
+        x = T.dmatrix('x')
+        loss = theano.function([x,npart,lv], self.loss(x, npart, lv))
+
+        loss_heap = []
+
+        results = results
+
+        for rind, result in enumerate(results):
+            leaf_values = np.zeros((self.N, 1))
+            subsets = result[0]
+            for subset in subsets:
+                s = list(subset)
+
+                min_val = -1 * np.sum(g[s])/(np.sum(h[s]) + self.gamma)
+                
+                # XXX
+                # impliedSolverKwargs = dict(max_depth=max([int(len(s)/2), 2]))
+                # impliedSolverKwargs = dict(max_depth=int(np.log2(num_partitions)))
+                impliedSolverKwargs = dict(max_depth=None)
+                leaf_values[s] = self.learning_rate * min_val
+            optimal_split_tree = self.imply_tree(leaf_values, **impliedSolverKwargs)
+            loss_new = loss(theano.function([], self.predict())() +
+                            theano.function([], optimal_split_tree.predict(self.X))(),
+                            len(subsets),
+                            leaf_values)
+            heapq.heappush(loss_heap, (loss_new.item(0), rind, leaf_values))
+
+        best_loss, best_rind, best_leaf_values = heapq.heappop(loss_heap)
+
+        logging.warn('BEST RIND: {}'.format(best_rind))
+
+        logging.info('found optimal leaf values')
+
+        # XXX
+        # solverKwargs = dict(max_depth=int(np.log2(num_partitions)))
+        solverKwargs = dict(max_depth=None)        
+        optimal_split_tree = self.imply_tree(best_leaf_values, **solverKwargs)
+
+        # ===============================
+        # == If DecisionTreeClassifier ==
+        # ===============================
+        # from sklearn import tree
+        # import graphviz
+        # dot_data = tree.export_graphviz(tr, out_file=None)
+        # graph = graphviz.Source(dot_data)
+        # graph.render('Boosting')
+
+        self.partitions.append(results[best_rind][0])
+
+        # XXX
+        # implied_values = theano.function([], optimal_split_tree.predict(self.X))()
+        # logging.info('found implied values for comparison')
+        # print('leaf_values:    {!r}'.format([(round(val,4), np.sum(best_leaf_values==val))
+        #                                     for val in np.unique(best_leaf_values)]))
+        # print('implied_values: {!r}'.format([(round(val,4), np.sum(implied_values==val))
+        #                                     for val in np.unique(implied_values)]))
+
+        return best_leaf_values
+
 
     def find_best_optimal_split(self, g, h, num_partitions):
         ''' Method: results contains the optimal partitions for all partition sizes in
@@ -213,12 +373,16 @@ class OptimalSplitGradientBoostingClassifier(object):
             loss wins.
         '''
 
+        logging.warn('NUM_PARTITIONS: {}'.format(num_partitions))
+
+        sweep_mode = False
         results = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                               g,
                                               h,
                                               objective_fn=Distribution.RATIONALSCORE,
                                               risk_partitioning_objective=self.risk_partitioning_objective,
-                                              use_rational_optimization=True)()
+                                              use_rational_optimization=True,
+                                              sweep_mode=sweep_mode)()
 
         logging.info('found optimal partition')
         assert(len(results[0]) == num_partitions)               
@@ -239,7 +403,7 @@ class OptimalSplitGradientBoostingClassifier(object):
                 s = list(subset)
 
                 min_val = -1 * np.sum(g[s])/(np.sum(h[s]) + self.gamma)
-                
+
                 # XXX
                 # impliedSolverKwargs = dict(max_depth=max([int(len(s)/2), 2]))
                 # impliedSolverKwargs = dict(max_depth=int(np.log2(num_partitions)))
@@ -336,7 +500,7 @@ class OptimalSplitGradientBoostingClassifier(object):
                 logging.info('generated coefficients')
             
                 # SWIG optimizer, task-based C++ distribution
-                num_partitions = int(rng.choice(range(self.min_partition_size, self.max_partition_size)))
+                num_partitions = max(1, int(rng.choice(range(max(self.min_partition_size, self.max_partition_size)))))
         
                 # Find best optimal split
                 best_leaf_values = self.find_best_optimal_split(g, h, num_partitions)
@@ -377,13 +541,25 @@ class OptimalSplitGradientBoostingClassifier(object):
             if len(self.col_mask) == 0:
                 # If no column mask, use cached predictions and restrict by row
                 # depending on row mask
-                g_f = self.grad_exp_loss_without_regularization(self.predict())
-                h_f = self.hess_exp_loss_without_regularization(self.predict())
+                # g_f = self.grad_exp_loss_without_regularization(self.predict())
+                # h_f = self.hess_exp_loss_without_regularization(self.predict())
+                # g_f = self.grad_logit_loss_without_regularization(self.predict())
+                # h_f = self.hess_logit_loss_without_regularization(self.predict())
+                # g_f = self.grad_mse_loss_without_regularization(self.predict())
+                # h_f = self.hess_mse_loss_without_regularization(self.predict())
+                g_f = self.grad_cosh_loss_without_regularization(self.predict())
+                h_f = self.hess_cosh_loss_without_regularization(self.predict())
             else:
                 # If column mask, cannot rely on cached predictions
-                g_f = self.grad_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-                h_f = self.hess_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-            
+                # g_f = self.grad_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # h_f = self.hess_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # g_f = self.grad_logit_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # h_f = self.hess_logit_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # g_f = self.grad_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # h_f = self.hess_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                g_f = self.grad_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                h_f = self.hess_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+
             g = theano.function([], g_f)()[0]
             h = theano.function([], h_f)()[0]
             c = None
@@ -404,14 +580,15 @@ class OptimalSplitGradientBoostingClassifier(object):
             
             G = theano.function([x], grads)
             H = theano.function([x], hess)
-            y_hat0 = theano.function([], self.predict())().squeeze()
+            y_hat0 = theano.function([], self.predict())().reshape(-1)
             g = G(y_hat0)
             h = np.diag(H(y_hat0))
             h = h + np.array([self.gamma]*h.shape[0])
-            
+
             c = None
             if constantTerm and not self.solver_type == 'linear_hessian':
                 c = theano.function([], self._mse_coordinatewise(self.predict()))().squeeze()
+
             return (g, h, c)
 
         
@@ -421,7 +598,12 @@ class OptimalSplitGradientBoostingClassifier(object):
     def loss_without_regularization(self, y_hat):
         ''' Dependent on loss function '''
         # return self.mse_loss_without_regularization(y_hat)
-        return self.exp_loss_without_regularization(y_hat)
+        # XXX
+        # return self.exp_loss_without_regularization(y_hat)
+        # return self.logit_loss_without_regularization(y_hat)
+        # return self.cross_entropy_loss_without_regularization(y_hat)
+        return self.cosh_loss_without_regularization(y_hat)
+    
 
     def regularization_loss(self, num_partitions, leaf_values):
         ''' Independent of loss function '''
@@ -432,6 +614,34 @@ class OptimalSplitGradientBoostingClassifier(object):
     def mse_loss_without_regularization(self, y_hat):
         return self._mse(y_hat)
 
+    def logit_loss_without_regularization(self, y_hat):
+        return T.sum(T.log(1+T.exp(-(2*y_hat.T-1)*(2*self.y-1)).T))
+
+    def grad_mse_loss_without_regularization(self, y_hat):
+        return -2*(self.y - y_hat.T)
+
+    def hess_mse_loss_without_regularization(self, y_hat):
+        # return theano.shared(name='h', value=2.*np.ones((1,self.N)))
+        return 2.*T.ones((1,self.N)).astype('float64')
+    
+    def grad_logit_loss_without_regularization(self, y_hat):
+        f1 = T.exp(-(2*y_hat.T-1)*(2*self.y-1))
+        # num = -2*(2*self.y-1)*f1
+        # den = 1 + f1
+        # return num/den
+        return (-2*(2*self.y-1)*f1)/(1 + f1)        
+
+    def hess_logit_loss_without_regularization(self, y_hat):
+        f1 = T.exp(-(2*y_hat.T-1)*(2*self.y-1))
+        f15 = (1+f1)
+        f2 = (2*self.y-1)*(2*self.y-1)
+        f3 = (4*f2*f1)
+        f4 = f3/f15
+        return f4-f4/f15
+        # num = (1+f1)*(4*f2*f1)-(4*f2*f1*f1)
+        # den = (1+f1)*(1+f1)
+        # return num/den            
+    
     def exp_loss_without_regularization(self, y_hat):
         return T.sum(T.exp(-1(2*y_hat.T-1)*(2*self.y-1)))
 
@@ -448,19 +658,26 @@ class OptimalSplitGradientBoostingClassifier(object):
     def cosh_loss_without_regularization(self, y_hat):
         return T.sum(T.log(T.cosh(y_hat - T.shape_padaxis(self.y, 1))))
 
+    def grad_cosh_loss_without_regularization(self, y_hat):
+        return T.sinh(y_hat.T - self.y)/T.cosh(y_hat.T - self.y)
+
+    def hess_cosh_loss_without_regularization(self, y_hat):
+        return 2/(1 + T.cosh(2*(y_hat.T - self.y)))
+    
     def hinge_loss_without_regularization(self, y_hat):
         return T.sum(T.abs_(y_hat - T.shape_padaxis(self.y, 1)))
 
     def logistic_loss_without_regularization(self, y_hat):
         return T.sum(T.log(1 + T.exp(-y_hat * T.shape_padaxis(self.y, 1))))
 
-    def cross_entropy(self, y_hat):
+    def cross_entropy_loss_without_regularization(self, y_hat):
         y0 = T.shape_padaxis(self.y, 1)
         # return T.sum(-(y0 * T.log(y_hat) + (1-y0)*T.log(1-y_hat)))
         return T.sum(T.nnet.binary_crossentropy(y_hat, y0))
     
     def _mse(self, y_hat):
-        return T.sqrt(T.sum(self._mse_coordinatewise(y_hat)))
+        # return T.sqrt(T.sum(self._mse_coordinatewise(y_hat)))
+        return T.sum(self._mse_coordinatewise(y_hat))
 
     def _mse_coordinatewise(self, y_hat):
         return (T.shape_padaxis(self.y, 1) - y_hat)**2

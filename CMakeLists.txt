@@ -8,6 +8,7 @@ project(proto)
 option(USE_C++17 "Use C++17 compliant compiler, default is C++11" OFF)
 option(USE_C++14 "Use C++14 compliant compiler, default is C++!1" OFF)
 option(GTEST "Compile google tests, default is OFF" OFF)
+option(SWIG_BINDINGS "Compile SWIG bindings for python" ON)
 
 if(CMAKE_CXX_COMPILER_LOADED)
   message(STATUS "The C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
@@ -57,7 +58,7 @@ target_link_libraries(LTSS_solver_test LTSS)
 
 # DPSolver
 add_executable(DP_solver_test DP_solver_test.cpp)
-target_link_libraries(DP_solver_test DP LTSS)
+target_link_libraries(DP_solver_test DP LTSS pthread)
 
 # DP example
 add_executable(DP_ex DP_ex.cpp)
@@ -83,6 +84,12 @@ set(CMAKE_SWIG_FLAGS "")
 if (GTEST)
   include_directories(${GTEST_INCLUDE_DIRS})
 endif()
+
+# if (SWIG_BINDINGS)
+#   set_source_files_properties(proto.i PROPERTIES_CPLUSPLUS ON)
+#   swig_add_library(_proto LANGUAGE python OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR} OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR} SOURCES LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto.i)
+#   swig_link_libraries(_proto ${PYTHON_LIBRARIES})
+# endif()
 #########################
 # END COMMON DIRECTIVES #
 #########################
@@ -101,14 +108,20 @@ target_link_libraries(DP LTSS)
 # To compile swig c++ python bindings from command line #
 #########################################################
 # $ swig -c++ -python proto.i
-# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp LTSS.cpp proto_wrap.cxx -I/usr/include/python3.6
+# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
 # $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+
+# $ swig -c++ -python proto.i
+# $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
+# $ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
 
 # Test:
 # $ python Solver_ex.py
 
 # Please replace the /usr/include/python3.6 directory above with the include directory on your host, as in
-# In [1]: from sysconfig import get_paths                                                                                  In [2]: from pprint import pprint                                                                                        In [2]: pprint(get_paths())                                                                                                                
+# In [1]: from sysconfig import get_paths                                                                                  
+# In [2]: from pprint import pprint                                                                                        
+# In [3]: pprint(get_paths())                                                                                                                
 # {'data': '/usr',
 # 
 #  'include': '/usr/include/python3.6',			<<- "include_path"

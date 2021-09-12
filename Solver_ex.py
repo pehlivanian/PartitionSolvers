@@ -3,10 +3,10 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
-rng = np.random.RandomState(134)
+rng = np.random.RandomState(136)
 
 num_partitions = 2
-n = 50
+n = 1000
 a = proto.FArray()                  # wrapper for C++ float array type
 b = proto.FArray()                  # wrapper for C++ float array type
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian
@@ -26,6 +26,13 @@ all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                           objective_fn,
                                           risk_partitioning_objective,
                                           optimized_score_calculation)()
+best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-10,
+                                          a,
+                                          b,
+                                          objective_fn,
+                                          risk_partitioning_objective,
+                                          optimized_score_calculation,
+                                          True)()
 # single_result[0] ~ single best subset
 # single_result[1] ~ score for best subset
 single_result = solverSWIG_LTSS.OptimizerSWIG(a,
@@ -40,3 +47,8 @@ print("SINGLE BEST SUBSET")
 print("==================")
 print('{!r}'.format(single_result[0]))
 print('SCORE: {}'.format(single_result[1]))
+print("BEST RESULT SWEEP")
+print("=================")
+print('{!r}'.format(best_result_sweep[0]))
+print('SCORE: {}'.format(best_result_sweep[1]))
+print('PARTITION SIZE: {}'.format(len(best_result_sweep[0])))

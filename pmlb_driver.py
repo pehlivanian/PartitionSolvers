@@ -7,12 +7,14 @@ import pandas as pd
 import sklearn.tree
 import sklearn.svm
 import sklearn.discriminant_analysis
+from stree import Stree
 from sklearn.model_selection import train_test_split
 import utils
 from optimalsplitboost import OptimalSplitGradientBoostingClassifier
 
 TEST_SIZE = 0.20
-FILENAME = './summary_final1_rp.csv'
+FILENAME = './summary_final10_rp.csv'
+USE_SIMULATED_DATA = False
 
 ########################
 ## PMLB Dataset sizes ##
@@ -29,16 +31,8 @@ if False:
 class_datasets = {'analcatdata_lawsuit', 'analcatdata_boxing2', 'heart_c', 'agaricus_lepiota', 'horse_colic', 'australian', 'flare', 'phoneme', 'breast_cancer_wisconsin', 'analcatdata_creditscore', 'clean1', 'monk2', 'analcatdata_aids', 'analcatdata_bankruptcy', 'churn', 'hypothyroid', 'lupus', 'GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1', 'labor', 'analcatdata_boxing1', 'xd6', 'Hill_Valley_without_noise', 'corral', 'adult', 'molecular_biology_promoters', 'twonorm', 'breast_w', 'bupa', 'diabetes', 'chess', 'german', 'mux6', 'backache', 'tokyo1', 'ionosphere', 'prnn_crabs', 'monk3', 'mofn_3_7_10', 'threeOf9', 'ring', 'spect', 'biomed', 'colic', 'sonar', 'hepatitis', 'cleve', 'monk1', 'irish', 'parity5+5', 'coil2000', 'magic', 'breast_cancer', 'analcatdata_cyyoung8092', 'GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1', 'GAMETES_Epistasis_2_Way_1000atts_0.4H_EDM_1_EDM_1_1', 'postoperative_patient_data', 'crx', 'clean2', 'house_votes_84', 'dis', 'haberman', 'saheart', 'GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1', 'GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001', 'profb', 'analcatdata_fraud', 'tic_tac_toe', 'kr_vs_kp', 'credit_g', 'prnn_synth', 'credit_a', 'parity5', 'mushroom', 'breast', 'glass2', 'pima', 'analcatdata_asbestos', 'appendicitis', 'vote', 'analcatdata_japansolvent', 'heart_h', 'GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001', 'wdbc', 'buggyCrx', 'analcatdata_cyyoung9302', 'hungarian', 'spambase', 'spectf', 'heart_statlog', 'Hill_Valley_with_noise'}
 class_datasets = sorted(class_datasets, reverse=False)
 
-# already_read = set(pd.unique(pd.read_csv('./summary_final.csv')['dataset']))
-# already_read = set(pd.unique(pd.read_csv('./summary_final0.csv')['dataset']))
-# already_read = already_read.union(pd.read_csv('./summary4.csv')['dataset'])
-# already_read = already_read.union(pd.read_csv('./summary5.csv')['dataset'])
-# already_read = already_read.union(pd.read_csv('./summary6.csv')['dataset'])
-# already_read = already_read.union(pd.read_csv('./summary7.csv')['dataset'])
-# already_read = already_read.union(pd.read_csv('./summary8.csv')['dataset'])
-# already_read = already_read.union(pd.read_csv('./summary9.csv')['dataset'])
 already_read = set([])
-already_read = already_read.union(pd.read_csv('summary_final0_rp.csv')['dataset'])
+# already_read = already_read.union(pd.read_csv('summary_final0_rp.csv')['dataset'])
 
 carve_out = set(('adult','agaricus_lepiota', 'churn', 'clean1', 'clean2', 'coil2000', 'magic', 'postoperative_patient_data', 'ring'))
 
@@ -50,20 +44,33 @@ for ind,dataset_name in enumerate(class_datasets):
         continue
 
     print('PROCESSING DATASET: {}'.format(dataset_name))
-    
-    X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=TEST_SIZE)
 
+    if (USE_SIMULATED_DATA): 
+        from sklearn.datasets import make_classification, load_breast_cancer
+        from sklearn.model_selection import train_test_split
+        SEED = 256 # 254
+        NUM_SAMPLES = 10000 # 1000, 10000
+        NUM_FEATURES = 20 # 20, 500
+        rng = np.random.RandomState(SEED)
+        
+        X,y = make_classification(random_state=SEED, n_samples=NUM_SAMPLES, n_features=NUM_FEATURES)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE)
+    else:
+        X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+        X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=TEST_SIZE)    
+
+    # XXX
     distiller = classifier.classifierFactory(sklearn.tree.DecisionTreeClassifier)
+    # distiller = classifier.classifierFactory(Stree)
     num_steps = 250
-    part_ratio = .7
+    part_ratio = .5 # .5
     min_partition_size= 1
     max_partition_size = int(part_ratio*X_train.shape[0])
-    row_sample_ratio = 0.65
+    row_sample_ratio = 0.5 # 0.65
     col_sample_ratio = 1.0
-    gamma = 0.
-    eta = 0.
-    learning_rate = 0.25
+    gamma = 0.0
+    eta = 0.0
+    learning_rate = 0.25 # 0.15
     distiller = distiller
     use_closed_form_differentials = True
 

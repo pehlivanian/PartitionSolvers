@@ -31,6 +31,8 @@ class OptimizerSWIG(object):
 
     def __call__(self):
         if self.sweep_mode:
+            # XXX
+            # Use parallel mode when available
             return proto.sweep_parallel__DP(self.N,
                                             self.num_partitions,
                                             self.g_c,
@@ -38,6 +40,7 @@ class OptimizerSWIG(object):
                                             self.objective_fn,
                                             self.risk_partitioning_objective,
                                             self.use_rational_optimization)
+
         else:
             return proto.optimize_one__DP(self.N,
                                           self.num_partitions,

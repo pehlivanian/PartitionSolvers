@@ -1,7 +1,7 @@
 #ifndef __PORT_UTILS__
 #define __PORT_UTILS__
 
-/*
+/* To enforce C++11 compilation
 #ifndef IS_11
   #define IS_11
 #endif
