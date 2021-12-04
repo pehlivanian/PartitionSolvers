@@ -102,10 +102,13 @@ class OptimalSplitGradientBoostingClassifier(object):
                              (self.num_classifiers + 1)
 
         # Set initial set of leaf_values to be random
+        # XXX
+        # Was self.min_partition_size
         if isinstance(self.distiller.args[0], sklearn.base.ClassifierMixin):
             # Cannot have number of unique classes == number of samples, so
             # we must restrict sampling to create fewer classes
             leaf_value = rng.choice(rng.uniform(low=0.0, high=1.0, size=(self.min_partition_size,)),
+            # leaf_value = rng.choice(rng.uniform(low=0.0, high=1.0, size=(self.max_partition_size,)),                                    
                                     size=(self.N, 1)).astype(theano.config.floatX)
         elif isinstance(self.distiller.args[0], sklearn.base.RegressorMixin):
             leaf_value = np.asarray(rng.uniform(low=0.0, high=1.0, size=(self.N, 1))).astype(theano.config.floatX)
@@ -391,6 +394,8 @@ class OptimalSplitGradientBoostingClassifier(object):
         lv = T.dmatrix('lv')
         x = T.dmatrix('x')
         loss = theano.function([x,npart,lv], self.loss(x, npart, lv))
+        yhat = theano.function([], self.predict())()
+        yhat0 = np.asarray(yhat)
 
         loss_heap = []
 
@@ -403,14 +408,24 @@ class OptimalSplitGradientBoostingClassifier(object):
                 s = list(subset)
 
                 min_val = -1 * np.sum(g[s])/(np.sum(h[s]) + self.gamma)
-
+                MAX_VAL = 0.9
+                MIN_VAL = 0.1
+                
                 # XXX
                 # impliedSolverKwargs = dict(max_depth=max([int(len(s)/2), 2]))
                 # impliedSolverKwargs = dict(max_depth=int(np.log2(num_partitions)))
                 impliedSolverKwargs = dict(max_depth=None)
+
+                # bounded
+                # pre_leaf_values = np.zeros((self.N,1))
+                # pre_leaf_values[s] = np.minimum(MAX_VAL-yhat0[s], np.array([self.learning_rate*min_val]*len(s)).reshape(-1,1))
+                # pre_leaf_values[s] = np.maximum(MIN_VAL-yhat0[s], np.array([self.learning_rate*min_val]*len(s)).reshape(-1,1))
+                # leaf_values[s] = pre_leaf_values[s]
+
+                # unbounded
                 leaf_values[s] = self.learning_rate * min_val
             optimal_split_tree = self.imply_tree(leaf_values, **impliedSolverKwargs)
-            loss_new = loss(theano.function([], self.predict())() +
+            loss_new = loss(yhat +
                             theano.function([], optimal_split_tree.predict(self.X))(),
                             len(subsets),
                             leaf_values)
@@ -545,20 +560,20 @@ class OptimalSplitGradientBoostingClassifier(object):
                 # h_f = self.hess_exp_loss_without_regularization(self.predict())
                 # g_f = self.grad_logit_loss_without_regularization(self.predict())
                 # h_f = self.hess_logit_loss_without_regularization(self.predict())
-                # g_f = self.grad_mse_loss_without_regularization(self.predict())
-                # h_f = self.hess_mse_loss_without_regularization(self.predict())
-                g_f = self.grad_cosh_loss_without_regularization(self.predict())
-                h_f = self.hess_cosh_loss_without_regularization(self.predict())
+                g_f = self.grad_mse_loss_without_regularization(self.predict())
+                h_f = self.hess_mse_loss_without_regularization(self.predict())
+                # g_f = self.grad_cosh_loss_without_regularization(self.predict())
+                # h_f = self.hess_cosh_loss_without_regularization(self.predict())
             else:
                 # If column mask, cannot rely on cached predictions
                 # g_f = self.grad_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
                 # h_f = self.hess_exp_loss_without_regularization(self.predict_from_input(self.X.get_value()))
                 # g_f = self.grad_logit_loss_without_regularization(self.predict_from_input(self.X.get_value()))
                 # h_f = self.hess_logit_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-                # g_f = self.grad_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-                # h_f = self.hess_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-                g_f = self.grad_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
-                h_f = self.hess_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                g_f = self.grad_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                h_f = self.hess_mse_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # g_f = self.grad_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
+                # h_f = self.hess_cosh_loss_without_regularization(self.predict_from_input(self.X.get_value()))
 
             g = theano.function([], g_f)()[0]
             h = theano.function([], h_f)()[0]
@@ -569,6 +584,29 @@ class OptimalSplitGradientBoostingClassifier(object):
             return (g, h, c)        
 
         else:
+
+            def fn(x):
+                return x*(x-1)*(x-2)
+
+            # Attempt at global approximation
+            if False:
+                xaxis = np.arange(-1., 1.1, .1)
+                leaf_values = self.leaf_values.get_value()[-1+self.curr_classifier,:]
+                y_hat0 = theano.function([], self.predict())().reshape(-1)
+                leaf_values = self.leaf_values.get_value()[-1+self.curr_classifier,:]
+                
+                pf = list()
+                for ind in range(y_hat0.shape[0]):                
+                    yaxis = [np.asscalar(theano.function([], self.loss(
+                        np.concatenate([y_hat0[:ind], xaxis[xind:(xind+1)], y_hat0[ind+1:]]),
+                        len(np.unique(leaf_values)),
+                        leaf_values
+                        ))()) for xind in range(0,len(xaxis))]
+                    # cp = np.polynomial.Chebyshev.fit(xaxis, yaxis, 2)
+                    pf.append(np.polynomial.polynomial.polyfit(xaxis,yaxis,2))
+                    print('ind: {}'.format(ind))
+                    import pdb; pdb.set_trace()
+                
             x = T.dvector('x')
             leaf_values = self.leaf_values.get_value()[-1+self.curr_classifier,:]
             if row_mask:
@@ -590,20 +628,18 @@ class OptimalSplitGradientBoostingClassifier(object):
                 c = theano.function([], self._mse_coordinatewise(self.predict()))().squeeze()
 
             return (g, h, c)
-
         
     def loss(self, y_hat, num_partitions, leaf_values):
         return self.loss_without_regularization(y_hat) + self.regularization_loss(num_partitions, leaf_values)
 
     def loss_without_regularization(self, y_hat):
         ''' Dependent on loss function '''
-        # return self.mse_loss_without_regularization(y_hat)
+        return self.mse_loss_without_regularization(y_hat)
         # XXX
         # return self.exp_loss_without_regularization(y_hat)
         # return self.logit_loss_without_regularization(y_hat)
         # return self.cross_entropy_loss_without_regularization(y_hat)
-        return self.cosh_loss_without_regularization(y_hat)
-    
+        # return self.cosh_loss_without_regularization(y_hat)
 
     def regularization_loss(self, num_partitions, leaf_values):
         ''' Independent of loss function '''
@@ -655,6 +691,9 @@ class OptimalSplitGradientBoostingClassifier(object):
         # return T.sum(T.exp(-y_hat * T.shape_padaxis(self.y, 1)))
         return T.sum(T.exp(-(2*y_hat.T-1)*(2*self.y-1)).T)
 
+    def cosh_loss_without_regularization_coordinatewise(self, y, y_hat):
+        return T.log(T.cosh(y_hat-y))
+
     def cosh_loss_without_regularization(self, y_hat):
         return T.sum(T.log(T.cosh(y_hat - T.shape_padaxis(self.y, 1))))
 
@@ -666,9 +705,6 @@ class OptimalSplitGradientBoostingClassifier(object):
     
     def hinge_loss_without_regularization(self, y_hat):
         return T.sum(T.abs_(y_hat - T.shape_padaxis(self.y, 1)))
-
-    def logistic_loss_without_regularization(self, y_hat):
-        return T.sum(T.log(1 + T.exp(-y_hat * T.shape_padaxis(self.y, 1))))
 
     def cross_entropy_loss_without_regularization(self, y_hat):
         y0 = T.shape_padaxis(self.y, 1)

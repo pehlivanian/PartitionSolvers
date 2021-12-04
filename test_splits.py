@@ -9,8 +9,11 @@ from itertools import chain, islice, combinations
 import matplotlib.pyplot as plot
 from scipy.spatial import ConvexHull, Delaunay
 
-SEED = 1856
+SEED = 1868
 rng = np.random.RandomState(SEED)
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def subsets(ns):
     return list(chain(*[[[list(x)] for x in combinations(range(ns), i)] for i in range(1,ns+1)]))
@@ -128,6 +131,12 @@ def reduce(return_values, fn):
 
 def simple_power_score_fn(a,b,gamma,p):
     return np.sum(a[p])**gamma
+
+def modified_power_score_fn(a,b,gamma,p):
+    if np.all(np.diff(p)==1) and (0 in p or -1+len(a) in p):
+        return simple_power_score_fn(a,b,gamma,p)
+    else:
+        return simple_power_score_fn(a,b,gamma,p)*2
 
 def power_score_fn(a,b,gamma,p):
     return np.sum(a[p])**gamma/np.sum(b[p])
@@ -438,7 +447,6 @@ def plot_constrained_unconstrained_overlay(a0, b0, plot_constrained=True, score_
             
             plot.savefig(path)
             plot.close()
-    import pdb; pdb.set_trace()
 
 def plot_polytope(a0, b0, plot_constrained=True, score_fn=power_score_fn, show_plot=True, save_plot=False):
 
@@ -546,7 +554,8 @@ if __name__ == '__main__':
 
     NUM_WORKERS = min(NUM_POINTS, multiprocessing.cpu_count() - 1)
 
-    SCORE_FN = power_score_fn
+    # SCORE_FN = power_score_fn
+    # SCORE_FN = modified_power_score_fn
     # SCORE_FN = log_score_fn
     # SCORE_FN = double_power_score_fn
     # SCORE_FN = sum_of_powers_of_x_fn
@@ -554,7 +563,7 @@ if __name__ == '__main__':
     # SCORE_FN = neg_x_times_y
     # SCORE_FN = neg_sum_of_powers_fn
     # SCORE_FN = power_of_sums_fn
-    # SCORE_FN = sqrt_of_sum_of_powers_fn
+    SCORE_FN = sqrt_of_sum_of_powers_fn
     # SCORE_FN = simple_power_score_fn
     # SCORE_FN = sum_power
     # SCORE_FN = Poisson_llr
@@ -696,23 +705,22 @@ if __name__ == '__main__':
         # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)
         # import pdb; pdb.set_trace()
 
-        plot_constrained_unconstrained_overlay(a0, b0, score_fn=SCORE_FN, show_plot=True)        
-        import pdb; pdb.set_trace()
+        # plot_constrained_unconstrained_overlay(a0, b0, score_fn=SCORE_FN, show_plot=True)        
         
         try:
-            # assert False
-            assert all(np.diff(list(chain.from_iterable(r_max_raw[1]))) == 1)
+            assert False
+            # assert all(np.diff(list(chain.from_iterable(r_max_raw[1]))) == 1)
             # assert np.max([o[0] for o in con_optim_all]) >= np.max([o[0] for o in optim_all])
         except AssertionError as e:
 
             print('OPTIMAL PARTITION ***: {}'.format(r_max_raw[1]))
             print('=================')
 
-            vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=False)
-            if len(set(vert_const_sym).difference(set(vert_ext_sym))) == 0:
-                print( set(vert_const_sym).difference(set(vert_ext_sym)) )
-                import pdb
-                pdb.set_trace()
+            # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=False)
+            # if len(set(vert_const_sym).difference(set(vert_ext_sym))) == 0:
+            #     print( set(vert_const_sym).difference(set(vert_ext_sym)) )
+            #     import pdb
+            #     pdb.set_trace()
             
             # optim_all = [optimize(a0, b0, i, POWER, NUM_WORKERS, PRIORITY_POWER) for i in range(1, 1+len(a0))]
 
@@ -722,7 +730,7 @@ if __name__ == '__main__':
             # res = Task(a0,b0,ss,power=POWER,cond=max,score_fn=SCORE_FN)()
 
             
-            if True:
+            if False:
                 print('OPTIMIZATION OVER ALL PARTITIONS')
                 print('================================')        
                 optim_all = [optimize(a0, b0, i, POWER, NUM_WORKERS, PRIORITY_POWER) for i in range(1, 1+len(a0))]
@@ -789,53 +797,59 @@ if __name__ == '__main__':
                 fn = float(np.inf)
                 s_opt = []
                 x_opt = []
-                for numPoints in (numSummands,):
-                    combs = [c for c in combinations(sets, numPoints)]
-                    fn = float(np.inf)
-                    if numPoints == 3:
-                        try:
-                            p = np.concatenate([np.array(p).reshape(2,1), np.array([1.]).reshape(1,1)])
-                        except Exception as e:
-                            import pdb; pdb.set_trace()
-                    for comb in combs:
-                        ps = [np.array([np.sum(a0[s[0]]),np.sum(b0[s[0]])]) for s in comb]
-                        A = np.stack(ps,axis=1).reshape((2,numPoints))
+
+                # Go through pair by pair of consecutive subsets
+                if True:
+                
+                    for numPoints in (numSummands,):
+                        combs = [c for c in combinations(sets, numPoints)]
+                        fn = float(np.inf)
                         if numPoints == 3:
-                            A = np.concatenate([A, np.array([1.,1.,1.]).reshape((1,3))])
-                        x = np.linalg.solve(A, p)
-                        # print('CANDIDATE: S: {} comb: {} weights: {}'.
-                        #       format(st, str(comb), x.reshape(1,-1)))
-                        if numSummands == 3 and [st] in comb:
-                            x = np.array([0.,0.,0.]).reshape(3,1)
-                            x[comb.index([st])] = 1.
-                        if (numPoints == 2 and np.all(x>=0.)) or (numPoints == 3 and np.all((x>=0.)|np.isclose(x,0.))):
-                            c  = np.array([SCORE_FN(a0,b0,POWER,p) for p in comb])
-                            score = np.dot(x.T, c)
-                            # print('S: {} comb: {} SCORE_FN: {} score-SCORE_FN: {} weights: {}'.
-                            #       format(st, str(comb), SCORE_FN(a0,b0,POWER,st), score-SCORE_FN(a0,b0,POWER,st), x.reshape(1,-1)))
-                            # Only fails for non-partition points
-                            # XXX
-                            # if score < SCORE_FN(a0,b0,POWER,st) and not np.isclose(score, SCORE_FN(a0,b0,POWER,st)):
-                            #     print('FAIL_o1')
-                            #     import pdb
-                            #     pdb.set_trace()
-                            if score < fn:
-                                fn = score
-                                s_opt=comb
-                                x_opt = x
+                            try:
+                                p = np.concatenate([np.array(p).reshape(2,1), np.array([1.]).reshape(1,1)])
+                            except Exception as e:
+                                import pdb; pdb.set_trace()
+                        for comb in combs:
+                            ps = [np.array([np.sum(a0[s[0]]),np.sum(b0[s[0]])]) for s in comb]
+                            A = np.stack(ps,axis=1).reshape((2,numPoints))
+                            if numPoints == 3:
+                                A = np.concatenate([A, np.array([1.,1.,1.]).reshape((1,3))])
+                            x = np.linalg.solve(A, p)
+                            # print('CANDIDATE: S: {} comb: {} weights: {} score: {}'.
+                            #       format(st, str(comb), x.reshape(1,-1), np.dot(x.T, np.array([SCORE_FN(a0,b0,POWER,p) for p in comb]))))
+                            if numSummands == 3 and [st] in comb:
+                                x = np.array([0.,0.,0.]).reshape(3,1)
+                                x[comb.index([st])] = 1.
+                            if (numPoints == 2 and np.all(x>=0.)) or (numPoints == 3 and np.all((x>=0.)|np.isclose(x,0.))):
+                                c  = np.array([SCORE_FN(a0,b0,POWER,p) for p in comb])
+                                score = np.dot(x.T, c)
+                                # print('S: {} comb: {} SCORE_FN: {} score-SCORE_FN: {} weights: {}'.
+                                #       format(st, str(comb), SCORE_FN(a0,b0,POWER,st), score-SCORE_FN(a0,b0,POWER,st), x.reshape(1,-1)))
+                                # Only fails for non-partition points
+                                # XXX
+                                # if score < SCORE_FN(a0,b0,POWER,st) and not np.isclose(score, SCORE_FN(a0,b0,POWER,st)):
+                                #     print('FAIL_o1')
+                                #     import pdb
+                                #     pdb.set_trace()
+                                if score < fn:
+                                    fn = score
+                                    s_opt=comb
+                                    x_opt = x
                 if not s_opt and not st:
                     print('FAILED TO FIND COMBINATION for set: {}'.format(st))
-                    import pdb; pdb.set_trace()
+                    # import pdb; pdb.set_trace()
 
-                if (st):
+                if True:
+                    # print('LINEAR PROGRAMMING SOLUTION')
                     from scipy.optimize import linprog
-                    c_ = [-np.sum(a0[st]),-np.sum(b0[st])]
+                    c_ = [-np.sum(a0[st]),-np.sum(b0[st])] if st else [-p[0], -p[1]]
                     A_ = [[np.sum(a0[0:i]),np.sum(b0[0:i])] for i in range(1,1+len(a0))] + [[np.sum(a0[i:]),np.sum(b0[i:])] for i in range(1,len(a0))]
                     b_ = [SCORE_FN(a0,b0,POWER,range(0,i)) for i in range(1,1+len(a0))] + [SCORE_FN(a0,b0,POWER,range(i,len(a0))) for i in range(1,len(a0))]
                     bounds_ = [(None,None)] * len(c_)
                     opt_poly = linprog(c_, A_ub=A_, b_ub=b_, bounds=bounds_, method='revised simplex')
+                    # print('LINPROG SOLUTION: {}'.format(opt_poly))
                     fn_opt_poly = -opt_poly.fun
-                    c_base_ = [-np.sum(a0[st]),-np.sum(b0[st])]
+                    c_base_ = [-np.sum(a0[st]),-np.sum(b0[st])] if st else [-p[0], -p[1]]
                     A_base_ = [[np.sum(a0[0:i]),np.sum(b0[0:i])] for i in range(1,len(a0))] + [[np.sum(a0[i:]),np.sum(b0[i:])] for i in range(1,len(a0))]
                     b_base_ = [SCORE_FN(a0,b0,POWER,range(0,i)) for i in range(1,len(a0))] + [SCORE_FN(a0,b0,POWER,range(i,len(a0))) for i in range(1,len(a0))]
                     A_eq_base_ = [[np.sum(a0), np.sum(b0)]]
@@ -843,7 +857,11 @@ if __name__ == '__main__':
                     bounds_base_ = [(None,None)] * len(c_)
                     opt_base_poly = linprog(c_base_, A_ub=A_base_, b_ub=b_base_, A_eq=A_eq_base_, b_eq=b_eq_base_, bounds=bounds_base_, method='revised simplex')
                     fn_opt_base_poly = -opt_base_poly.fun
-
+                    # print('LINPROG SOLUTION: {}'.format(fn_opt_base_poly))
+                    x_opt_linprog = opt_poly.x
+                    ranges = [list(range(0,i)) for i in range(1,1+len(a0))] + [list(range(i,len(a0))) for i in range(1,len(a0))]
+                    s_opt_linprog = [ranges[ind] for ind,x in enumerate([np.isclose(0.,x) for x in opt_poly.slack]) if x]
+                    
                 if (False):
                     from fillplots import plot_regions, boundary
                     from functools import partial
@@ -897,10 +915,18 @@ if __name__ == '__main__':
                 #     print('INNER FAIL')
                 #     import pdb
                 #     pdb.set_trace()
-                if st:
-                    # print('OPTIMIZATION: {}'.format(opt_poly))
-                    # XXX
-                    return fn_opt_poly,s_opt,x_opt
+                if True:
+                    if opt_poly.success:
+                        # print('OPTIMIZATION: p:   {}'.format(p))
+                        # print('OPTIMIZATION: st:  {}'.format(st))
+                        # print('OPTIMIZATION: opt: {}'.format(opt_poly))
+                        # print('DECOMP: {}'.format(S[0]), end=' --> ')
+                        # _ = [print('{}*{}'.format(a,b), end=' ') for a, b in list(zip(x_opt, s_opt))]
+                        # print()
+                        # print('VALUE: F(x,y): {} score: {}'.format(SCORE_FN(a0,b0,POWER,S[0]), fn_opt_poly))                        
+                        return fn_opt_poly,s_opt_linprog,x_opt_linprog
+                    else:
+                        return np.nan, [], []
                 else:
                     return fn,s_opt,x_opt                 
 
@@ -916,7 +942,7 @@ if __name__ == '__main__':
             # convex_comb([0,1,3, 5, 6])
             # Convex inequality
             # XXX
-            TRIALS = 10
+            TRIALS = 100
             sets = subsets(len(a0))
             sets.remove([[0]]);
             # sets.remove([[-1+len(a0)]]);
@@ -935,11 +961,18 @@ if __name__ == '__main__':
                 
                 p = np.array([np.sum(a0[S[0]]), np.sum(b0[S[0]])]).reshape((2,1))
                 score,s_opt,x_opt = convex_closure(p,st=S)
-                # print('S: {}'.format(S))
-                # print('s_opt: {}'.format(s_opt))
-                # print('x_opt: {}'.format(x_opt.tolist()))
-                # print('conv_cl: {} F: {}'.format(score, SCORE_FN(a0,b0,POWER,S)))
+                print('S: {}'.format(S))
+                print('s_opt: {}'.format(s_opt))
+                print('x_opt: {}'.format(x_opt.tolist() if not isinstance(x_opt, list) else x_opt))
+                print('conv_cl: {} F: {}'.format(score, SCORE_FN(a0,b0,POWER,S)))
 
+                print('DECOMP: {}'.format(S[0]), end=' --> ')
+                _ = [print('{}*{}'.format(a,b), end=' ') for a, b in list(zip(x_opt, s_opt))]
+                print()
+                print('VALUE: F(x,y): {} score: {}'.format(SCORE_FN(a0,b0,POWER,S[0]), score))
+                # if np.all(np.diff(S[0])==1):
+                #     vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)
+                #     import pdb; pdb.set_trace()
 
                 # Extension dominates score function on partition points
                 if (score < SCORE_FN(a0,b0,POWER,S[0])) and not np.isclose(score,SCORE_FN(a0,b0,POWER,S)):
@@ -948,8 +981,8 @@ if __name__ == '__main__':
                     print('s_opt: {}'.format(s_opt))
                     print('x_opt: {}'.format(x_opt.tolist()))
                     # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)                                       
-                    # import pdb
-                    # pdb.set_trace()
+                    import pdb
+                    pdb.set_trace()
 
                 # Extension is subadditive on partition points
                 S1=[];S2=[]
@@ -971,54 +1004,62 @@ if __name__ == '__main__':
                 rhs2 = 0.
                 if (lhs1+lhs2)<(rhs1+rhs2) and not np.isclose(lhs1+lhs2,rhs1+rhs2):
                     print('FAIL_c2')
-                    # import pdb
-                    # pdb.set_trace()
+                    import pdb
+                    pdb.set_trace()
 
                 if SCORE_FN(a0,b0,POWER,S) > 0:
 
                     # Intersection of optimal sets is nonempty
-                    # if (S not in s_opt):                    
-                    #     if not len(set(s_opt[0][0]).intersection(set(s_opt[1][0]))):
-                    #         print('FAIL_c2')
-                    #         # import pdb
-                    #         # pdb.set_trace()
+                    if (S not in s_opt):
+                        try:
+                            insction = len(set(s_opt[0][0]).intersection(set(s_opt[1][0])))
+                            if not insction:
+                                print('FAIL_c2')
+                                import pdb
+                                pdb.set_trace()                            
+                        except:
+                            continue
 
                     # Optimal sets sit adjacent in standard ordering
-                    # if np.diff(np.sort([con_parts.index(s_[0]) for s_ in s_opt]))[0] != 1:
-                    #     print('FAIL_c3')
-                    #     # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)                    
-                    #     # import pdb
-                    #     # pdb.set_trace()
+                    if not all(np.diff(S[0])==1) and np.diff(np.sort([con_parts.index(s_[0]) for s_ in s_opt]))[0] != 1:
+                        print('FAIL_c3')
+                        # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)                    
+                        import pdb
+                        pdb.set_trace()
 
                     # Sum of weights is \leq 1
-                    if np.sum(x_opt) > 1.:
+                    if np.sum(x_opt) > 1. and not np.isclose(np.sum(x_opt), 1.0) and not np.isclose(SCORE_FN(a0,b0,POWER,S[0]), score):
                         print('FAIL_c4')
-                        # import pdb
-                        # pdb.set_trace()
+                        import pdb
+                        pdb.set_trace()
+
                     coverage = set(chain.from_iterable([subs[0] for subs in s_opt]))
 
                     # Original set in set of optimal sets
                     # if not set(S[0]).issubset(coverage):
                     #     print('FAIL_c5')
-                    #     # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)                    
-                    #     # import pdb
-                    #     # pdb.set_trace()
+                    #     vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)
+                    #     import pdb
+                    #     pdb.set_trace()
 
                     # Original set is subset of intersection of optimal sets
                     # if not set(S[0]).issubset(set(s_opt[0][0]).intersection(set(s_opt[1][0]))):
                     #     print('FAIL_c6')
-                    #     # import pdb
-                    #     # pdb.set_trace()
+                    #     import pdb
+                    #     pdb.set_trace()
 
-                    # Score of all optimal sets smaller than score of original set
+                    # Score function of at least one of the optimal sets is larger than the score function of the original set
                     if (SCORE_FN(a0,b0,POWER,s_opt[0][0]) < SCORE_FN(a0,b0,POWER,S[0])) and (SCORE_FN(a0,b0,POWER,s_opt[1][0]) < SCORE_FN(a0,b0,POWER,S[0])):
                         print('FAIL_c8')
-                        # import pdb
-                        # pdb.set_trace()
+                        import pdb
+                        pdb.set_trace()
 
+            # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)
+            # import pdb; pdb.set_trace()
+            
             # Convexity of extension
             # XXX
-            TRIALS = 10
+            TRIALS = 100
             sets = subsets(len(a0))
             sets.remove([[0]])
             # sets.remove([[-1+len(a0)]])            
@@ -1045,7 +1086,7 @@ if __name__ == '__main__':
 
             # Subadditivity of extension
             # XXX
-            TRIALS = 10
+            TRIALS = 100
             sets = subsets(len(a0))
             sets.remove([[0]])
             # sets.remove([[-1+len(a0)]])            
@@ -1060,52 +1101,117 @@ if __name__ == '__main__':
                     import pdb
                     pdb.set_trace()
 
-            # Homogeneity of extension
-            TRIALS = 10
+            # (0,1]-homogeneity of extension
+            TRIALS = 100
             sets = subsets(len(a0))
             sets.remove([[0]])
             # sets.remove([[-1+len(a0)]])            
             for trial in range(TRIALS):
                 s = sets[rng.choice(len(sets))][0]
                 p = [np.sum(a0[s]),np.sum(b0[s])]
-                p_half = [.5*x for x in p]
+                mult = rng.uniform(0,1.)
+                p_half = [mult*x for x in p]
                 lhs = convex_closure(p)[0]
                 rhs = convex_closure(p_half)[0]
-                if not np.isclose(lhs,2.*rhs):
+                if not np.isclose(mult*lhs,rhs) and not np.isinf(lhs) and not np.isinf(rhs):
                     print('FAIL_s2')
-                    # import pdb
-                    # pdb.set_trace()
-                    
+                    import pdb
+                    pdb.set_trace()
+
+            # [1,\infy)-subhomogeneity of extension
+            TRIALS = 100
+            sets = subsets(len(a0))
+            sets.remove([[0]])
+            # sets.remove([[-1+len(a0)]])            
+            for trial in range(TRIALS):
+                s = sets[rng.choice(len(sets))][0]
+                p = [np.sum(a0[s]),np.sum(b0[s])]
+                mult = rng.uniform(1.,10.)
+                p_half = [mult*x for x in p]
+                lhs = convex_closure(p)[0]
+                rhs = convex_closure(p_half)[0]
+                if (lhs>rhs) and not np.isclose(lhs,rhs) and not np.isinf(lhs) and not np.isinf(rhs):
+                    print('FAIL_s3')
+                    import pdb
+                    pdb.set_trace()
+
+            # extension increasing in x
+            TRIALS = 100
+            sets = subsets(len(a0))
+            sets.remove([[0]])
+            for trial in range(TRIALS):
+                s = sets[rng.choice(len(sets))][0]
+                p = [np.sum(a0[s]),np.sum(b0[s])]
+                addend = rng.uniform(0,1.)
+                p_mod = [p[0]+addend,p[1]]
+                lhs = convex_closure(p)[0]
+                rhs = convex_closure(p_mod)[0]
+                if (lhs>=rhs) and not np.isclose(lhs,rhs):
+                    print('FAIL_s4')
+                    import pdb
+                    pdb.set_trace()
+
+            # extension increasing in y
+            # XXX
+            TRIALS = 100
+            sets = subsets(len(a0))
+            sets.remove([[0]])
+            for trial in range(TRIALS):
+                s = sets[rng.choice(len(sets))][0]
+                p = [np.sum(a0[s]),np.sum(b0[s])]
+                addend = rng.uniform(0,1.)
+                p_mod = [p[0],p[1]+addend]
+                print('p: {}'.format(p))                
+                lhs = convex_closure(p)[0]
+                print('p_mod: {}'.format(p_mod))                
+                rhs = convex_closure(p_mod)[0]
+                if (lhs>rhs) and not np.isclose(lhs,rhs):
+                    print('FAIL_s5')
+                    import pdb
+                    pdb.set_trace()
 
             # ascending
             if True and not np.all( np.diff([-np.sum(a0[0:i])/np.sum(b0[0:i]) for i in range(1,1+len(a0))])<=0):
                 print('FAIL_a1')
-                # import pdb
-                # pdb.set_trace()
+                import pdb
+                pdb.set_trace()
 
             # descending
             if True and not np.all( np.diff([-np.sum(a0[i:])/np.sum(b0[i:]) for i in range(0,len(a0))])<=0):
                 print('FAIL_d1')
-                # import pdb
-                # pdb.set_trace()
+                import pdb
+                pdb.set_trace()
 
-            if True and not np.all( np.diff([np.sum(a0[range(0,i)])/np.sum(b0[range(0,i)])/np.sum(a0[range(i,len(a0))])/np.sum(b0[range(i,len(a0))]) for i in range(1,len(a0))])>0):
-                print('FAIL_ad1')
+            # if True and not np.all( np.diff([np.sum(a0[range(0,i)])/np.sum(b0[range(0,i)])/np.sum(a0[range(i,len(a0))])/np.sum(b0[range(i,len(a0))]) for i in range(1,len(a0))])>0):
+                # print('FAIL_ad1')
                 # import pdb
                 # pdb.set_trace()
 
             # Although this fails in UNCONSTRAINED case, the diffs once positive stay positive
             # boundary expanding
-            if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts)]) >= 0):
+            # if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts)]) >= 0):
                 
-            # ascending boundary expanding
-            # if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts[:len(a0)])]) > 0):
-            # descending boundary expanding
-            # if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts) if i >= len(a0)]) >= 0):
+            # ascending boundary expanding in y
+            if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts[:len(a0)])]) >= 0):
+                print('FAIL_be_1')
+                import pdb; pdb.set_trace()
+            # descending boundary expanding in y
+            if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts) if i >= len(a0)]) >= 0):
+                print('FAIL_be_2')
+                import pdb; pdb.set_trace()                
+            # ascending boundary expanding in x
+            if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(a0[con_parts[i]]) for i,_ in enumerate(con_parts[:len(a0)])]) <= 0):
+                print('FAIL_be_3')
+                import pdb; pdb.set_trace()                
+            # descending boundary expanding in x
+            if not np.all(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(a0[con_parts[i]]) for i,_ in enumerate(con_parts) if i >= len(a0)]) <= 0):
+                print('FAIL_be_4')
+                import pdb; pdb.set_trace()                
+                
             # if not np.all(np.diff(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts)])) > 0):
-                print('FAIL_A1')
-                _ = [print(con_parts[i], SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]])) for i,_ in enumerate(con_parts)]            
-                _ = [print(con_parts[i], v) for i,v in enumerate(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts)]))]
+            # print('FAIL_A1')
+            _ = [print(con_parts[i], SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]])) for i,_ in enumerate(con_parts)]            
+            _ = [print(con_parts[i], v) for i,v in enumerate(np.diff([SCORE_FN(a0,b0,POWER,con_parts[i])/np.sum(b0[con_parts[i]]) for i,_ in enumerate(con_parts)]))]
 
             if not np.all(np.diff([np.sum(a0[con_part])/np.sum(b0[con_part]) for con_part in con_parts]) > 0):
                 print('FAIL_A2')

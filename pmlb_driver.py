@@ -36,7 +36,7 @@ already_read = set([])
 
 carve_out = set(('adult','agaricus_lepiota', 'churn', 'clean1', 'clean2', 'coil2000', 'magic', 'postoperative_patient_data', 'ring'))
 
-df = pd.DataFrame(columns=['dataset', 'row_ratio', 'col_ratio', 'part_ratio', 'learning_rate', 'numsteps', 'rat', 'features', 'classes', 'imalance', 'igb_loss_IS', 'cbt_loss_IS', 'igb_acc_OS', 'cbt_acc_OS'])
+df = pd.DataFrame(columns=['dataset', 'row_ratio', 'col_ratio', 'part_ratio', 'learning_rate', 'numsteps', 'rat', 'features', 'classes', 'imbalance', 'igb_loss_IS', 'cbt_loss_IS', 'igb_acc_OS', 'cbt_acc_OS'])
 
 for ind,dataset_name in enumerate(class_datasets):
 
@@ -62,15 +62,15 @@ for ind,dataset_name in enumerate(class_datasets):
     # XXX
     distiller = classifier.classifierFactory(sklearn.tree.DecisionTreeClassifier)
     # distiller = classifier.classifierFactory(Stree)
-    num_steps = 250
-    part_ratio = .5 # .5
+    num_steps = 250 # 250
+    part_ratio = .10 # .5
     min_partition_size= 1
     max_partition_size = int(part_ratio*X_train.shape[0])
-    row_sample_ratio = 0.5 # 0.65
+    row_sample_ratio = 0.4 # 0.65
     col_sample_ratio = 1.0
-    gamma = 0.0
-    eta = 0.0
-    learning_rate = 0.25 # 0.15
+    gamma = 0.01
+    eta = 0.025
+    learning_rate = 0.20 # 0.15
     distiller = distiller
     use_closed_form_differentials = True
 
@@ -85,7 +85,7 @@ for ind,dataset_name in enumerate(class_datasets):
                   'solver_type':                   'linear_hessian',
                   'learning_rate':                 learning_rate,
                   'distiller':                     distiller,
-                  'use_closed_form_differentials': True,
+                  'use_closed_form_differentials': True, # XXX
                   'risk_partitioning_objective':   True, # XXX
                   }
 
