@@ -8,10 +8,9 @@ Utilities for investigation of combinatorial optimization problems arising in co
 
 Ok, the swig bindings are now failing to compile from cmake directives, they must be generated from CL as follows:
 
-#########################################################
-# To compile swig c++ python bindings from command line #
-#########################################################
-# To generate c++17-compliant swig bindings
+### To compile swig c++ python bindings from command line
+
+#### To generate c++17-compliant swig bindings
 # $ swig -c++ -python proto.i
 # $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
 # $ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
