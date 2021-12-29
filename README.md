@@ -5,7 +5,22 @@ Utilities for investigation of combinatorial optimization problems arising in co
 - cmake
 - swig
 - google mock, test
- 
+
+## C++ executables
+
+### Compile to ./build as in 
+```
+$ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON
+$ cmake --build build -- -j4
+```
+
+### Unittests:
+```
+$ ./build/bin/gtest_all
+```
+
+## Python api
+
 ### Ok, the swig bindings are now failing to compile from cmake directives, they must be generated from CL as follows:
 ```
 $ swig -c++ -python proto.i
@@ -13,6 +28,7 @@ $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssol
 $ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
 ```
 #### Please replace the /usr/include/python3.6 directory above with the include directory on your host, as in
+```
 In [1]: from sysconfig import get_paths                                                                                  
 In [2]: from pprint import pprint                                                                                        
 In [3]: pprint(get_paths())                                                                                                                
@@ -24,6 +40,7 @@ In [3]: pprint(get_paths())
  'purelib': '/usr/lib/python3.6/site-packages',
  'scripts': '/usr/bin',
  'stdlib': '/usr/lib/python3.6'}
+```
 
 #### Quick Test
 $ python solver_ex.py
