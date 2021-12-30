@@ -6,9 +6,7 @@ import proto
 rng = np.random.RandomState(136)
 
 num_partitions = 2
-n = 1000
-a = proto.FArray()                  # wrapper for C++ float array type
-b = proto.FArray()                  # wrapper for C++ float array type
+n = 55
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian
 risk_partitioning_objective = False # False => multiple clustering score function is used
 optimized_score_calculation = False # Leave this False; only implemented for RationalScore case
@@ -17,6 +15,7 @@ a_lower_limit = 0. if objective_fn == 1 else -10.; a_higher_limit = 10.
 b_lower_limit = 0.; b_higher_limit = 10.
 a = rng.uniform(low=a_lower_limit, high=a_higher_limit, size=n)
 b = rng.uniform(low=b_lower_limit, high=b_higher_limit, size=n)
+
 
 # all_results[0] ~ size n partition
 # all_results[1] ~ cumulative score
@@ -33,6 +32,8 @@ best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-10,
                                           risk_partitioning_objective,
                                           optimized_score_calculation,
                                           True)()
+
+
 # single_result[0] ~ single best subset
 # single_result[1] ~ score for best subset
 single_result = solverSWIG_LTSS.OptimizerSWIG(a,

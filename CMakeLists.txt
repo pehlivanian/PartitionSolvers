@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.6)
 ###########################
 project(proto)
 
+# Toggle compiler support: C++11...C++17
 option(USE_C++17 "Use C++17 compliant compiler, default is C++11" OFF)
 option(USE_C++14 "Use C++14 compliant compiler, default is C++!1" OFF)
 option(GTEST "Compile google tests, default is OFF" OFF)
@@ -89,11 +90,10 @@ endif()
 #   set_source_files_properties(proto.i PROPERTIES_CPLUSPLUS ON)
 #   swig_add_library(_proto LANGUAGE python OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR} OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR} SOURCES LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto.i)
 #   swig_link_libraries(_proto ${PYTHON_LIBRARIES})
-# endif()
+endif()
 #########################
 # END COMMON DIRECTIVES #
 #########################
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INCLUDE_PATH})
@@ -107,16 +107,13 @@ target_link_libraries(DP LTSS)
 #########################################################
 # To compile swig c++ python bindings from command line #
 #########################################################
-# $ swig -c++ -python proto.i
-# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
-# $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
-
+# To generate c++17-compliant swig bindings
 # $ swig -c++ -python proto.i
 # $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
 # $ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
 
 # Test:
-# $ python Solver_ex.py
+# $ python solver_ex.py
 
 # Please replace the /usr/include/python3.6 directory above with the include directory on your host, as in
 # In [1]: from sysconfig import get_paths                                                                                  

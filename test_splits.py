@@ -19,6 +19,9 @@ def subsets(ns):
     return list(chain(*[[[list(x)] for x in combinations(range(ns), i)] for i in range(1,ns+1)]))
 
 def knuth_partition(ns, m):
+    ''' Partions of size m of a set o size ns,
+        a la Knuth
+    '''
     if m == 1:
         return [[ns]]
     
@@ -99,8 +102,8 @@ def knuth_partition(ns, m):
     return f(m, n, 0, n, a)
 
 def Bell_n_k(n, k):
-    ''' Number of partitions of  1,...,n} into
-        k subsets, a restricted Bell number
+    ''' Number of partitions of  {1,...,n} into
+        k subsets, a Stirling number, hence the name Bell
     '''
     if (n == 0 or k == 0 or k > n): 
         return 0
@@ -111,6 +114,9 @@ def Bell_n_k(n, k):
                 Bell_n_k(n - 1, k - 1))
 
 def _Mon_n_k(n, k):
+    ''' Number of consecutive partitions of size k
+        from ground set {1,...,n}
+    '''
     return comb(n-1, k-1, exact=True)
 
 def slice_partitions(partitions):
@@ -138,6 +144,7 @@ def modified_power_score_fn(a,b,gamma,p):
     else:
         return simple_power_score_fn(a,b,gamma,p)*2
 
+# Score function taxonomy
 def power_score_fn(a,b,gamma,p):
     return np.sum(a[p])**gamma/np.sum(b[p])
 
@@ -245,7 +252,6 @@ class Worker(multiprocessing.Process):
             task = self.task_queue.get()
             # print('{} : Fetched task of type {}'.format(proc_name, type(task)))
             if isinstance(task, EndTask):
-                # print('Exiting: {}'.format(proc_name))
                 self.task_queue.task_done()
                 break
             result = task()
@@ -270,6 +276,7 @@ def plot_convex_hull(a0,
         return dhull.find_simplex((x,y)) >= 0
 
     def F_symmetric(x,y,gamma):
+        # Unfortunately this needs to be in synch with F_orig designation
         import warnings
         warnings.filterwarnings('ignore')
         ret = x**gamma/y + (Cx-x)**gamma/(Cy-y)
@@ -374,7 +381,6 @@ def plot_convex_hull(a0,
             if include_colorbar:
                 fig1.colorbar(cp)
             
-
         ax1.scatter(X, Y)
         for i,t in enumerate(txt):
             if i in hull.vertices:
@@ -400,7 +406,6 @@ def plot_convex_hull(a0,
 
     return fig1, ax1, vertices_txt
     
-
 def plot_constrained_unconstrained_overlay(a0, b0, plot_constrained=True, score_fn=power_score_fn, show_plot=True, save_plot=False):
     for labeled_case in (True, False):
         for symmetric_case in (False, True):
@@ -507,10 +512,7 @@ def optimize(a0, b0, PARTITION_SIZE, POWER, NUM_WORKERS, PRIORITY_POWER, CONSEC_
     ind = np.argsort(a0**PRIORITY_POWER/b0)
     (a,b) = (seq[ind] for seq in (a0,b0))
 
-    # XXX
-    # if num_mon_partitions > 100:
-    # Doesn't work in certain cases?
-    if False:
+    if False: # Not dependable for num_mon_partitions small
         tasks = multiprocessing.JoinableQueue()
         results = multiprocessing.Queue()
         workers = [Worker(tasks, results) for i in range(NUM_WORKERS)]
@@ -548,9 +550,9 @@ def optimize(a0, b0, PARTITION_SIZE, POWER, NUM_WORKERS, PRIORITY_POWER, CONSEC_
 if __name__ == '__main__':
     NUM_POINTS =        int(sys.argv[1]) or 3          # N
     PARTITION_SIZE =    int(sys.argv[2]) or 2          # T
-    POWER =             float(sys.argv[3]) or 2.2      # gamma
+    POWER =             float(sys.argv[3]) or 2.0      # gamma
     PRIORITY_POWER =    float(sys.argv[4]) or 1.0      # tau
-    UNCONSTRAINED =     float(sys.argv[5]) or False    # full upper-half plane
+    UNCONSTRAINED =     float(sys.argv[5]) or False    # whether (X,Y) lies in plane or upper-half plane
 
     NUM_WORKERS = min(NUM_POINTS, multiprocessing.cpu_count() - 1)
 
@@ -599,14 +601,6 @@ if __name__ == '__main__':
         b0 = b0[sortind]
 
         r_max_raw = optimize(a0, b0, PARTITION_SIZE, POWER, NUM_WORKERS, PRIORITY_POWER)
-
-        # vert_const_asym, vert_const_sym, vert_ext_asym, vert_ext_sym = plot_polytope(a0, b0, score_fn=SCORE_FN, show_plot=True)
-        # plot_constrained_unconstrained_overlay(a0, b0, score_fn=SCORE_FN, show_plot=True)        
-
-        # print('=====')
-
-        if False:
-            print('TRIAL: {} : max_raw: {:4.6f} pttn: {!r}'.format(trial, *r_max_raw))
 
         test_parts = [range(0,i) for i in range(1,len(a0))] + [list(range(0,len(a0)))] + [range(i,len(a0)) for i in range(1,len(a0))]
         test_cparts = [list(set(range(0,len(a0))).difference(set(test_part))) for test_part in test_parts]
@@ -755,8 +749,6 @@ if __name__ == '__main__':
                         sets = [s for s in sets if np.all(np.diff(s)==1)]
                         sets = [s for s in sets if s[0][0]==0 or s[0][-1]==-1+len(a0)]
                 
-                
-
                 import pdb
                 pdb.set_trace()
                     
