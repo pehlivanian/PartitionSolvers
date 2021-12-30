@@ -6,7 +6,7 @@ Utilities for investigation of combinatorial optimization problems arising in co
 - swig
 - google mock, test
 
-## C++ executables
+## C++ api
 
 ### Compile to ./build as in 
 ```
@@ -18,6 +18,8 @@ $ cmake --build build -- -j4
 ```
 $ ./build/bin/gtest_all
 ```
+
+Examples of calling conventions are contained in DP_solver_test.
 
 ## Python api
 
@@ -44,4 +46,6 @@ In [3]: pprint(get_paths())
 
 #### Quick Test
 $ python solver_ex.py
+
+Examnples of calling conventions are contained in pmlb_driver.py which performs successive fits over pmlb datasets.
 
