@@ -1,5 +1,5 @@
 # PartitionSolvers
-Utilities for investigation of combinatorial optimization problems arising in common spatial scan statistics formulations, also related to notions of consecutive submodularity, convex optimization. See \bibitem{PN} Charles A. Pehlivanian, Daniel B. Neill, {\em Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property}, preprint, 2021 
+Utilities for investigation of combinatorial optimization problems arising in common spatial scan statistics formulations, also related to notions of consecutive submodularity, convex optimization. See Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
 
 ### Requirements:
 - cmake
@@ -35,7 +35,7 @@ In [1]: from sysconfig import get_paths
 In [2]: from pprint import pprint                                                                                        
 In [3]: pprint(get_paths())                                                                                                                
 {'data': '/usr',
- 'include': '/usr/include/python3.6',			<<- "include_path"
+ 'include': '/usr/include/python3.6',			<<- include_path
  'platinclude': '/usr/include/python3.6', 
  'platlib': '/usr/lib/python3.6/site-packages',
  'platstdlib': '/usr/lib/python3.6',
@@ -47,5 +47,5 @@ In [3]: pprint(get_paths())
 #### Quick Test
 $ python solver_ex.py
 
-Examnples of calling conventions are contained in pmlb_driver.py which performs successive fits over pmlb datasets.
+Examples of calling conventions are contained in pmlb_driver.py which performs successive fits over pmlb datasets.
 
