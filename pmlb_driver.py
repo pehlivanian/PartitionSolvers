@@ -13,7 +13,7 @@ import utils
 from optimalsplitboost import OptimalSplitGradientBoostingClassifier
 
 TEST_SIZE = 0.20
-FILENAME = './summary_final10.csv'
+FILENAME = './summary.csv'
 USE_SIMULATED_DATA = False
 
 ########################
@@ -87,8 +87,8 @@ for ind,dataset_name in enumerate(class_datasets):
                   'solver_type':                   'linear_hessian',
                   'learning_rate':                 learning_rate,
                   'distiller':                     distiller,
-                  'use_closed_form_differentials': True, # XXX
-                  'risk_partitioning_objective':   True, # XXX
+                  'use_closed_form_differentials': True, # Only available for some loss functions
+                  'risk_partitioning_objective':   False,
                   }
 
     clf = OptimalSplitGradientBoostingClassifier( X_train, y_train, **clfKwargs)
