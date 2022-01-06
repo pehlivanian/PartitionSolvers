@@ -1,12 +1,7 @@
 #ifndef __PORT_UTILS__
 #define __PORT_UTILS__
 
-/* To enforce C++11 compilation
-#ifndef IS_11
-  #define IS_11
-#endif
-*/
-#ifdef IS_11
+#ifdef IS_CXX_11
   namespace std {
     template<typename T, typename... Args>
     unique_ptr<T> make_unique(Args&&... params) {
@@ -14,5 +9,4 @@
     }
   }
 #endif
-
 #endif
