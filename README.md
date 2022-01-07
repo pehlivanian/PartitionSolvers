@@ -1,5 +1,8 @@
 # PartitionSolvers
-Utilities for investigation of combinatorial optimization problems arising in common spatial scan statistics formulations, also related to notions of consecutive submodularity, convex optimization. See Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
+Utilities to demonstrate use of the consecutive partitions property (CPP) in combinatorial optimization problems, notably those arising in the context of Spatial Scan Statistics. These were used to generate tables, figures for Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
+
+
+- <img src="https://latex.codecogs.com/gif.latex?P^{*}=\argmax_{\substack{P = \left\lbrace S_1, \dots, S_t\right\rbrace}} {\sum_{j=1\ldots t}f\left( \sum_{i \in S_j}x_i, \sum_{i \in S_j}y_i\right)} />
 
 ### Requirements:
 - cmake
