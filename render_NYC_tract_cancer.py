@@ -1,81 +1,20 @@
+import argparse
 import sys
 import numpy as np
 import pandas as pd
 from dbfread import DBF
-import solverSWIG_DP
-import solverSWIG_LTSS
-import proto
-import matplotlib.pyplot as plt
+
 from mpl_toolkits.basemap import Basemap
+import shapefile
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
 
-num_partitions = int(sys.argv[1])
-cancer_type = sys.argv[2]
-
-def set_display(max_columns=100, max_rows=500, max_colwidth=64, prec=6):
-    import pandas as pd
-    pd.options.display.expand_frame_repr = False
-    pd.options.display.max_columns = max_columns
-    pd.options.display.max_rows = max_rows
-    pd.options.display.max_colwidth=max_colwidth
-    if prec>=0:
-        pd.options.display.float_format = ('{:20,.%df}'%prec).format
-
-set_display()
+import solverSWIG_DP
+import proto
 
 
-data = pd.read_csv("./NYS_data/NYC Cancer Rates 2013-2017.csv")
-
-g, h, geoid = list(), list(), list()
-for i,r in data.iterrows():
-    if cancer_type == 'breast':
-        g.append(r.Breast_observed)
-        h.append(r.Breast_expected)
-    elif cancer_type == 'prostate':
-        g.append(r.Prostate_observed)
-        h.append(r.Prostate_expected)
-    elif cancer_type == 'lung':
-        g.append(r.Lung_observed)
-        h.append(r.Lung_expected)
-    geoid.append(int(r.geoid))
-
-g_c = np.asarray(g)
-h_c = np.asarray(h)
-
-distribution = 1
-risk_partitioning_objective = False
-optimized = True
-
-all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
-                                          g_c,
-                                          h_c,
-                                          distribution,
-                                          risk_partitioning_objective,
-                                          optimized)()
-
-qs = [np.sum(g_c[list(i)])/np.sum(h_c[list(i)]) for i in all_results[0]]
-proportions = [len(i)/len(g) for i in all_results[0]]
-sortind = np.argsort(qs)
-sorted_results = [all_results[0][i] for i in sortind]
-sorted_qs = [qs[i] for i in sortind]
-sorted_proportions = [proportions[i] for i in sortind]
-# sorted_qs.reverse()
-all_results = (sorted_results, all_results[1])
-
-single_result = solverSWIG_LTSS.OptimizerSWIG(g_c, h_c, distribution)()
-
-def cluster_no(i, clusters):
-    ind = 0
-    while i not in clusters[ind]:
-        ind+=1
-    return ind
-
-res1 = pd.DataFrame({'geoid': geoid, 'cluster': 0})
-for i,r in res1.iterrows():
-    res1.iloc[i].cluster = cluster_no(i, all_results[0])
-
-# random_clusters = np.random.randint(4,size=len(data.index))
-# res1=pd.concat([pd.Series(data.geoid),pd.Series(random_clusters,name='cluster')],axis=1)
-# pairs of census tracts merged by NYS - assign each pair the same cluster
 dict_to_add = {'36005002000':'36005002400', 
                '36005003500':'36005003700',
                '36005009000':'36005011000',
@@ -133,25 +72,64 @@ dict_to_add = {'36005002000':'36005002400',
                '36085007400':'36085001800',
                '36085029102':'36085022800'}
 
+def get_cancer_data(cancer_type):
+    ''' Get raw data, filter by cancer type
+    '''
+       
+    data = pd.read_csv("./NYS_data/NYC Cancer Rates 2013-2017.csv")
+    
+    g, h, geoid = list(), list(), list()
+    for i,r in data.iterrows():
+        if cancer_type == 'breast':
+            g.append(r.Breast_observed)
+            h.append(r.Breast_expected)
+        elif cancer_type == 'prostate':
+            g.append(r.Prostate_observed)
+            h.append(r.Prostate_expected)
+        elif cancer_type == 'lung':
+            g.append(r.Lung_observed)
+            h.append(r.Lung_expected)
+        geoid.append(int(r.geoid))
 
-# run this code after cluster assignment and before visualization
-res2 = pd.DataFrame()
-res2['geoid']=[]
-res2['cluster']=[]
-for from_geo in dict_to_add:
-    to_geo = dict_to_add[from_geo]
-    theclust = res1[res1['geoid']==int(from_geo)].iloc[0,1]
-    res2=res2.append({'geoid':to_geo,'cluster':theclust},ignore_index=True)
-res=pd.concat([res1,res2],ignore_index=True).astype({'cluster':int})
+    g_ = np.asarray(g)
+    h_ = np.asarray(h)
+    geoid_ = np.asarray(geoid)
+    return g_,h_,geoid_
 
+def find_partitions(num_partitions, g, h, distribution, risk_partitioning_objective):
+    ''' Optimizer
+    '''
+    all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
+                                              g,
+                                              h,
+                                              distribution,
+                                              risk_partitioning_objective,
+                                              True)()
+    return all_results
 
-def visualization(result, cancer_type='breast', risk_partitioning_objective=True):
-    import shapefile
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
-    from matplotlib.patches import Polygon
-    from matplotlib.collections import PatchCollection
-    #   -- input --
+def label_clusters(results, geoid):
+    ''' associate tract with cluster number
+    '''
+    def cluster_no(i, clusters):
+        ind = 0
+        while i not in clusters[ind]:
+            ind+=1
+        return ind
+
+    res1 = pd.DataFrame({'geoid': geoid, 'cluster': 0})
+    for i,r in res1.iterrows():
+        res1.iloc[i].cluster = cluster_no(i, results[0])
+
+    res2 = pd.DataFrame(columns=['geoid', 'cluster'])
+    for from_geo,to_geo in dict_to_add.items():
+        theclust = res1[res1['geoid']==int(from_geo)].iloc[0,1]
+        res2=res2.append({'geoid':to_geo,'cluster':theclust},ignore_index=True)
+    res = pd.concat([res1,res2],ignore_index=True).astype({'cluster':int})
+    return res
+
+def visualization(raw_result, result, num_partitions, cancer_type='breast', risk_partitioning_objective=True, colormap='Blues'):
+    ''' render visuals
+    '''
     nyc_geoid=list(result.geoid.unique())
     sf = shapefile.Reader("./NYS_data/nyct2010_21b/nyct2010.shp")
     recs    = sf.records()
@@ -165,6 +143,15 @@ def visualization(result, cancer_type='breast', risk_partitioning_objective=True
     test.loc[:,"geoid"]=0
     test.loc[:,"geoid"]="36"+test.county+test.iloc[:,3].apply(str)
 
+    qs = [np.sum(g[list(i)])/np.sum(h[list(i)]) for i in raw_result[0]]
+    proportions = [len(i)/len(g) for i in raw_result[0]]
+
+    sortind = np.argsort(qs)
+    sorted_results = [raw_result[0][i] for i in sortind]
+    sorted_qs = [qs[i] for i in sortind]
+    sorted_proportions = [proportions[i] for i in sortind]
+
+
     shapes  = sf.shapes()
     Nshp    = len(shapes)
     cns     = []
@@ -172,23 +159,13 @@ def visualization(result, cancer_type='breast', risk_partitioning_objective=True
         cns.append(recs[nshp][1])
     cns = np.array(cns)
 
-    # XXX
-    # cmap = plt.cm.Spectral(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    cmap = plt.cm.Blues(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.Purples(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.Reds(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.Greens(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.Greys(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.plasma(np.linspace(0,1,max(result.iloc[:,-1])+1))
-    # cmap = plt.cm.Oranges(np.linspace(0,1,max(result.iloc[:,-1])+1))        
+    cmap = getattr(plt.cm, colormap)(np.linspace(0,1,max(result.iloc[:,-1])+1))
     cmap[0] = [1., 1., 1., 1.]
 
     fig=plt.figure(figsize = (10,10)) 
     fig.add_subplot(111)
     ax = fig.gca()
-    # XXX
     for nshp in list(range(Nshp))[1:]:
-    # for nshp in list(range(Nshp)):        
         if int(test.iloc[nshp,-1]) in nyc_geoid:
             k=result[result.geoid==int(test.iloc[nshp,-1])].iloc[0,-1]
             c=cmap[k][0:3]  
@@ -207,8 +184,6 @@ def visualization(result, cancer_type='breast', risk_partitioning_objective=True
     clum_num=len(result.iloc[:,-1].unique())
 
     handles=[]
-    # XXX
-    # for t in list(range(clum_num)):    
     for t in list(range(clum_num))[1:]:
         props = str(round(100.*sorted_proportions[t],2))
         props = props + '0'*(2-len(props.split('.;')[-1]))
@@ -218,14 +193,46 @@ def visualization(result, cancer_type='breast', risk_partitioning_objective=True
                                                         +props
                                                         +'% of census tracts)')
         handles.append(locals()["patch_{}".format(t)])
-    #plt.axis('off')
     plt.xticks([], [])
     plt.yticks([],[])
     algo_type = 'risk_part' if risk_partitioning_objective else 'MULT'    
     plt.title('NYC {} cancer incidence 2013-2017 {} t = {} partitions'.format(cancer_type, algo_type, num_partitions))
     plt.legend(handles=handles,loc='upper left',prop={'size':8})
     plt.pause(1e-3)
-    plt.savefig('NYC_{}_{}_{}_whitebkgnd.pdf'.format(cancer_type, num_partitions, algo_type))
+    plt.savefig('NYC_{}_{}_{}_{}.pdf'.format(cancer_type, num_partitions, algo_type, colormap))
     plt.close()
 
-visualization(res, cancer_type=cancer_type, risk_partitioning_objective=risk_partitioning_objective)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate NYC census tract figures')
+    parser.add_argument('T', metavar='T', type=int,
+                        help='number of partitions')
+    parser.add_argument('type', metavar='Cancer type', type=str,
+                        help='''type of cancer, one of ("breast", "prostate", "lung")''')
+    parser.add_argument('-dist', metavar='Distribution', type=int, default=1,
+                        help='distribution specification, 1 ~ Poisson, 2 ~ Gaussian DEFAULT: 1')
+    parser.add_argument('-obj', metavar='Objective', type=bool, default=True,
+                        help='true ~ risk partitioning objective, false ~ multiple cluster detection DEFAULT: True')
+    parser.add_argument('-color', metavar='Colormap', type=str, default='Blues',
+                        help='''colormap specification for visualization, choices are not limited to
+                        ('Blues',
+                        'Spectral',
+                        'Purples',
+                        'Reds',
+                        'Greens',
+                        'Greys',
+                        'plasma',
+                        'Orange'). See matplot.pyplot.cm attributes for more information DEFAULT: Blues''')
+
+    args = parser.parse_args(sys.argv[1:])
+
+    # get raw cancer data by type
+    g, h, geoid = get_cancer_data(args.type)
+
+    # optimize
+    parts = find_partitions(args.T, g, h, args.dist, args.obj)
+
+    # label things
+    result = label_clusters(parts, geoid)
+
+    # render graph
+    visualization(parts, result, args.T, cancer_type='breast', risk_partitioning_objective=args.obj, colormap=args.color)

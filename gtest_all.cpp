@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
-#include <iterator>
 
 #include "score.hpp"
 #include "DP.hpp"
