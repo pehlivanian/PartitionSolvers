@@ -9,6 +9,10 @@ represent a partition of the ground set. We provide exact solutions in <img src=
 - <img src="https://latex.codecogs.com/svg.image?\max_{\substack{P&space;=&space;\left\lbrace&space;S_1,&space;\dots,&space;S_t\right\rbrace}}&space;{\sum_{j=1\ldots&space;t}f\left(&space;\sum_{i&space;\in&space;S_j}x_i,&space;\sum_{i&space;\in&space;S_j}y_i\right)}" title="P^{*}=\max_{\substack{P = \left\lbrace S_1, \dots, S_t\right\rbrace}} {\sum_{j=1\ldots t}f\left( \sum_{i \in S_j}x_i, \sum_{i \in S_j}y_i\right)}" />
 for f satsifying certain regularity conditions. Note that the cardinality of the set of partitions of the ground set is a Stirling number of the second kind, which grows super-exponentially. 
 
+In the spatial scan statistic setting, we are able to locate any number of hot spots by 2 essentially different criteria:
+
+![NYC prostate cancer incidence](https://github.com/pehlivanian/PartitionSolvers/main/figures/NYC_prostate_3_risk_part_Blues.pdf?raw=true)
+
 ### Requirements:
 - cmake
 - swig
