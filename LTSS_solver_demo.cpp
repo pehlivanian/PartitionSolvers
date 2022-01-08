@@ -1,6 +1,6 @@
 #include <random>
 
-#include "LTSS_solver_test.hpp"
+#include "LTSS_solver_demo.hpp"
 
 void print_subset(std::vector<int>& subset) {
   std::cout << "SUBSET\n";

@@ -1,16 +1,20 @@
 # PartitionSolvers
-Utilities to demonstrate use of the consecutive partitions property (CPP) in combinatorial optimization problems, notably those arising in the context of Spatial Scan Statistics. These were used to generate tables, figures for Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
+Utilities to demonstrate use of the consecutive partitions property (CPP) in combinatorial optimization problems, notably those arising in the context of Spatial Scan Statistics. The routines were used to generate tables, figures for 
 
-In particular, let 
+Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
+
+Let 
 <img src="https://latex.codecogs.com/svg.image?\mathcal{V}&space;=&space;\{&space;1,&space;\dots,&space;n\}" title="\mathcal{V} = \{ 1, \dots, n\}" />
 be the ground set, for some integer n and let 
 <img src="https://latex.codecogs.com/svg.image?P&space;=&space;\{&space;S_1,&space;\dots,&space;S_t\}" title="P = \{ S_1, \dots, S_t\}" /> 
-represent a partition of the ground set. We provide exact solutions in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time to the program
+represent a partition of the ground set into t subsets. The C++ optimizer routines provide exact solutions in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time to the program
 - <img src="https://latex.codecogs.com/svg.image?\max_{\substack{P&space;=&space;\left\lbrace&space;S_1,&space;\dots,&space;S_t\right\rbrace}}&space;{\sum_{j=1\ldots&space;t}f\left(&space;\sum_{i&space;\in&space;S_j}x_i,&space;\sum_{i&space;\in&space;S_j}y_i\right)}" title="P^{*}=\max_{\substack{P = \left\lbrace S_1, \dots, S_t\right\rbrace}} {\sum_{j=1\ldots t}f\left( \sum_{i \in S_j}x_i, \sum_{i \in S_j}y_i\right)}" />
-for f satsifying certain regularity conditions. Note that the cardinality of the set of partitions of the ground set is a Stirling number of the second kind, which grows super-exponentially. 
+for f satsifying certain regularity conditions. Note that the cardinality of the set of partitions of the ground set is a Stirling number of the second kind, which grows super-exponentially. The underlying optimizer engine is callable from Python via SWIG bindings provided, and asynchronous, distributed (using native C++ primitives) versions are also provided. Build instructions follow the theory.
 
 
-In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. For the NYC census track data below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind with more than 1256 digits:
+In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. 
+
+For the NYC census track data multiple clustering problem below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind with more than 1256 digits:
  
 ```
 In [1]: stir = Stirling_n_k(2089,4); stir
@@ -31,7 +35,7 @@ Out[2]: 1256.3231106424016
 
 ```
 
-We display an exact solution below.
+We display an exact solution over this space obtained in ~ 300 millis on a single Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz below:
 
 ### Prostate cancer incidence for NYC census tract data:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_3_risk_part_Blues.jpg?raw=true)
@@ -43,13 +47,14 @@ We display an exact solution below.
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Japan_09-01-2020_3_best_0_thresh.jpg?raw=true)
 
 
-### Requirements:
+### Build requirements:
 - cmake
 - swig
 - google mock, test [optional]
 
 ## C++ api
 
+### C++ cmake build options: {CMAKE_BUILD_TYPE, GTEST, SWIG_BINDINGS, USE_C++{11,14,17}}
 ### Compile to ./build with tests, SWIG bindings as in 
 ```
 $ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DUSE_C++17=ON

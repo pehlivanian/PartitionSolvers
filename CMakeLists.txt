@@ -42,12 +42,12 @@ endif()
 include(UseSWIG)
 
 # LTSSSolver
-add_executable(LTSS_solver_test LTSS_solver_test.cpp)
-target_link_libraries(LTSS_solver_test LTSS)
+add_executable(LTSS_solver_demo LTSS_solver_demo.cpp)
+target_link_libraries(LTSS_solver_demo LTSS)
 
 # DPSolver
-add_executable(DP_solver_test DP_solver_test.cpp)
-target_link_libraries(DP_solver_test DP LTSS pthread)
+add_executable(DP_solver_demo DP_solver_demo.cpp)
+target_link_libraries(DP_solver_demo DP LTSS pthread)
 
 # DP example
 add_executable(DP_ex DP_ex.cpp)
