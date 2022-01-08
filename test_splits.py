@@ -103,7 +103,7 @@ def knuth_partition(ns, m):
 
 def Bell_n_k(n, k):
     ''' Number of partitions of  {1,...,n} into
-        k subsets, a Stirling number, hence the name Bell
+        k subsets, a Stirling number, hence the name Bell(!)
     '''
     if (n == 0 or k == 0 or k > n): 
         return 0

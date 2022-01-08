@@ -228,6 +228,8 @@ if __name__ == '__main__':
     # get raw cancer data by type
     g, h, geoid = get_cancer_data(args.type)
 
+    import pdb; pdb.set_trace()
+
     # optimize
     parts = find_partitions(args.T, g, h, args.dist, args.obj)
 
