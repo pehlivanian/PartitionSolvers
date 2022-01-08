@@ -235,4 +235,4 @@ if __name__ == '__main__':
     result = label_clusters(parts, geoid)
 
     # render graph
-    visualization(parts, result, args.T, cancer_type='breast', risk_partitioning_objective=args.obj, colormap=args.color)
+    visualization(parts, result, args.T, cancer_type=args.type, risk_partitioning_objective=args.obj, colormap=args.color)

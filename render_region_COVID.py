@@ -226,7 +226,7 @@ def plot_spatial_data(df_dt, g, h, dt, country, num_partitions, single_best, res
                labelspacing=1, loc='lower left');
             plt.title('JHU CSSE COVID-19 Dataset {} Confirmed Cases: {} Single Clust'.format(country, dt))
             path_str = 'single_best'
-    path = '{}_{}_{}'.format(country, dt, path_str)
+    path = '{}_{}_{}.pdf'.format(country, dt, path_str)
     # plt.show()
     plt.savefig(path)
     plt.close()
