@@ -10,7 +10,7 @@ represent a partition of the ground set. We provide exact solutions in <img src=
 for f satsifying certain regularity conditions. Note that the cardinality of the set of partitions of the ground set is a Stirling number of the second kind, which grows super-exponentially. 
 
 
-In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. For the NYC census track data below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind:
+In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. For the NYC census track data below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind with more than 1256 digits:
  
 ```
 In [1]: stir = Stirling_n_k(2089,4); stir
@@ -50,9 +50,9 @@ We display an exact solution below.
 
 ## C++ api
 
-### Compile to ./build as in 
+### Compile to ./build with tests, SWIG bindings as in 
 ```
-$ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON
+$ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DUSE_C++17=ON
 $ cmake --build build -- -j4
 ```
 
@@ -61,11 +61,11 @@ $ cmake --build build -- -j4
 $ ./build/bin/gtest_all
 ```
 
-Examples of calling conventions are contained in DP_solver_test.
+Examples of C++ calling conventions are contained in DP_solver_test.
 
 ## Python api
 
-### Ok, the swig bindings are now failing to compile from cmake directives, they must be generated from CL as follows:
+### Stand alone compilationg of SWIG bindings from command line:
 ```
 $ swig -c++ -python proto.i
 $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
@@ -77,7 +77,9 @@ In [1]: from sysconfig import get_paths
 In [2]: from pprint import pprint                                                                                        
 In [3]: pprint(get_paths())                                                                                                                
 {'data': '/usr',
- 'include': '/usr/include/python3.6',			<<- include_path
+
+ 'include': '/usr/include/python3.6',
+
  'platinclude': '/usr/include/python3.6', 
  'platlib': '/usr/lib/python3.6/site-packages',
  'platstdlib': '/usr/lib/python3.6',
