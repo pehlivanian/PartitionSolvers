@@ -10,6 +10,8 @@ represent a partition of the ground set. We provide exact solutions in <img src=
 for f satsifying certain regularity conditions. Note that the cardinality of the set of partitions of the ground set is a Stirling number of the second kind, which grows super-exponentially. 
 
 
+In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. For the NYC census track data below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind:
+ 
 ```
 In [1]: stir = Stirling_n_k(2089,4); stir
 Out[1]: 210431447409800191296583727832226839065237927891122460307106368633353484117223598238114153819988920486099811194806302904295743586839744228213476513291173650425796293122933013115578706858760153919526875686176073853325449643320414648594307348167627365391989808841332607648439612368353241446588794767379729988808712559262746812796289263212083701314696360591723536762663137668157363387604736553340589109110285432676841303340518584295462882478556764786337643594339139231619452837242688224628405816869812983358720423012434336108890489916370884851898274970453163490731427818364695134532080624583819431706697407538148833383229453294024488650886226536001556668899709525996000180065455678833733087391062935280721256170368748023881996323996096894059090131613790013901183757868228777175850186032592907546469521557052562097694254791444966037038414255524677782230302321395494190002719126585317041532172643951244591923584906131585166857899297105226899880474145189029423353235670351168424305900175862613867684867650484009470576706859521574831097812316140433267005867097428781329654720338834076725930533432392371951417286494579877784004748321597423989561911960626432453810751099047061191880075429075509288244465976655030524209008010059508898601427863013165223817872754402970
@@ -19,12 +21,13 @@ Out[2]: 1256.3231106424016
 
 ```
 
-In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family).
+We display an exact solution below.
 
-In the spatial scan statistic setting, we are able to locate any number of hot spots by 2 essentially different criteria:
-
+Prostate cancer incidence for NYC census tract data:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_3_risk_part_Blues.jpg?raw=true)
+COVID confirmed cases, Minnesota, a/o 09-01-2020
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Minnesota_09-01-2020_4_best_0_thresh.jpg?raw=true)
+COVID confirmed cases, Japan, a/o 09-01-2020
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Japan_09-01-2020_3_best_0_thresh.jpg?raw=true)
 
 
