@@ -23,11 +23,11 @@ Out[2]: 1256.3231106424016
 
 We display an exact solution below.
 
-Prostate cancer incidence for NYC census tract data:
+<br/>Prostate cancer incidence for NYC census tract data:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_3_risk_part_Blues.jpg?raw=true)
-COVID confirmed cases, Minnesota, a/o 09-01-2020
+<br/>OVID confirmed cases, Minnesota, a/o 09-01-2020
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Minnesota_09-01-2020_4_best_0_thresh.jpg?raw=true)
-COVID confirmed cases, Japan, a/o 09-01-2020
+<br/>COVID confirmed cases, Japan, a/o 09-01-2020
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Japan_09-01-2020_3_best_0_thresh.jpg?raw=true)
 
 
