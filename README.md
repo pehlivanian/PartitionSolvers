@@ -11,7 +11,7 @@ for f satsifying certain regularity conditions. Note that the cardinality of the
 
 In the spatial scan statistic setting, we are able to locate any number of hot spots by 2 essentially different criteria:
 
-![NYC prostate cancer incidence](./PartitionSolvers/figures/NYC_prostate_3_risk_part_Blues.pdf?raw=true)
+![NYC prostate cancer incidence](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_3_risk_part_Blues.pdf?raw=true)
 
 ### Requirements:
 - cmake
