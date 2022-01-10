@@ -11,6 +11,8 @@ CPUInfo=`lscpu | grep -i "Model name" | cut -d : -f 2 | gawk '{$1=$1}; 1'`
 
 echo "Writing raw runtimes to "${fn}
 
-# Many T runs for fixed n
-# ./build/bin/solver_timer $n $T $NStride $TStride > $fn
+# Create raw timings across 
+# n in {T, T+NStride, T+2*NStride,..., n}
+# T in {TStride, 2*TStride,..., T}
+./build/bin/solver_timer $n $T $NStride $TStride > $fn
 python plot_times.py $n $T $NStride $TStride "$CPUInfo" $fn
