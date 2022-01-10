@@ -46,6 +46,12 @@ We display an exact solution over this space obtained in ~ 300 millis on a singl
 ### COVID confirmed cases, Japan, a/o 09-01-2020:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Japan_09-01-2020_3_best_0_thresh.jpg?raw=true)
 
+Runtimes on Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz by varying n, T are shown as well as a least-squares 3-parameter power-rule fit with p(x) = a + b*x^c We expect c ~ 2.0 when T is held fixed, and c ~ 1.0 for fixed n.
+
+### Runtimes for varying n
+![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_by_n.jpg?raw=true)
+![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_with_power_fit_by_n.jpg?raw=true)
+
 
 ## C++ api
 
