@@ -84,7 +84,7 @@ $ cmake --build build -- -j4
 
 Aside from the SWIG python binaries, the builds creates the executables:
 ```
-build/bin
+./build/bin
 |--DP_solver_demo   // Partition solver demo
 |--LTSS_solver_demo // Single subset (LTSS) solver demo
 |--solver_timer     // Run timings
@@ -126,11 +126,14 @@ In [3]: pprint(get_paths())
 $ ./build/bin/gtest_all
 ```
 #### Test of SWIG bindings
+```
 $ python solver_ex.py
+```
 
 #### C++ excutables demonstrating solver API
-build/bin
+```
+./build/bin
 |--DP_solver_demo   // Partition solver demo
 |--LTSS_solver_demo // Single subset (LTSS) solver demo
-
+```
 
