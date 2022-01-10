@@ -38,7 +38,7 @@ Out[2]: 1256.3231106424016
 We display an exact solution over this space obtained in ~ 300 millis on a single Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz below:
 
 ### Prostate cancer incidence for NYC census tract data:
-![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_3_risk_part_Blues.jpg?raw=true)
+![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_5_risk_part_Blues.jpg?raw=true)
 
 ### COVID confirmed cases, Minnesota, a/o 09-01-2020:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Minnesota_09-01-2020_4_best_0_thresh.jpg?raw=true)
@@ -47,12 +47,12 @@ We display an exact solution over this space obtained in ~ 300 millis on a singl
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Japan_09-01-2020_3_best_0_thresh.jpg?raw=true)
 
 
+## C++ api
+
 ### Build requirements:
 - cmake
 - swig
 - google mock, test [optional]
-
-## C++ api
 
 ### C++ cmake build options: {CMAKE_BUILD_TYPE, GTEST, SWIG_BINDINGS, USE_C++{11,14,17}}
 ### Compile to ./build with tests, SWIG bindings as in 
@@ -61,12 +61,19 @@ $ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DU
 $ cmake --build build -- -j4
 ```
 
-### Unittests:
+Aside from the SWIG python binaries, the builds creates the executables:
 ```
-$ ./build/bin/gtest_all
+build/bin
+|--DP_solver_demo   // Partition solver demo
+|--LTSS_solver_demo // Single subset (LTSS) solver demo
+|--solver_timer     // Run timings
+|--gtest_all        // tests
+
 ```
 
-Examples of C++ calling conventions are contained in DP_solver_test.
+Demos, unittests are straightforward. To generate runtime charts:
+
+
 
 ## Python api
 

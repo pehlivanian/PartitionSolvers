@@ -49,10 +49,6 @@ target_link_libraries(LTSS_solver_demo LTSS)
 add_executable(DP_solver_demo DP_solver_demo.cpp)
 target_link_libraries(DP_solver_demo DP LTSS pthread)
 
-# DP example
-add_executable(DP_ex DP_ex.cpp)
-target_link_libraries(DP_ex DP LTSS)
-
 # solver_timer
 add_executable(solver_timer solver_timer.cpp)
 target_link_libraries(solver_timer DP timer)

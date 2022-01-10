@@ -205,7 +205,7 @@ def visualization(raw_result, result, num_partitions, cancer_type='breast', risk
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate NYC census tract figures')
     parser.add_argument('T', metavar='T', type=int,
-                        help='number of partitions')
+                        help='number of subsets')
     parser.add_argument('type', metavar='Cancer type', type=str,
                         help='''type of cancer, one of ("breast", "prostate", "lung")''')
     parser.add_argument('-dist', metavar='Distribution', type=int, default=1,
@@ -227,8 +227,6 @@ if __name__ == '__main__':
 
     # get raw cancer data by type
     g, h, geoid = get_cancer_data(args.type)
-
-    import pdb; pdb.set_trace()
 
     # optimize
     parts = find_partitions(args.T, g, h, args.dist, args.obj)

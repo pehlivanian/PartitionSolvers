@@ -29,7 +29,6 @@ auto main() -> int {
   std::vector<float> a(N), b(N);
   
   for (int i=0; i<NUM_TRIALS; ++i) {
-    std::cerr << "TRIAL: " << i << std::endl;
 
     std::generate(a.begin(), a.end(), gena);
     std::generate(b.begin(), b.end(), genb);
@@ -38,6 +37,13 @@ auto main() -> int {
 
     std::vector<int> subset = ltss.get_optimal_subset_extern();
 
+    std::cout << "\n========\nTRIAL: " << i << "\n========\n";
+    std::cout << "\na: { ";
+    std::copy(a.begin(), a.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::cout << "}" << std::endl;
+    std::cout << "b: { ";
+    std::copy(b.begin(), b.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::cout << "}" << std::endl;
     print_subset(subset);
   }
 
