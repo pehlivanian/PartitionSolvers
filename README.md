@@ -121,8 +121,16 @@ In [3]: pprint(get_paths())
  'stdlib': '/usr/lib/python3.6'}
 ```
 
-#### Quick Test
+#### Unittests for C++ object libs
+```
+$ ./build/bin/gtest_all
+```
+#### Test of SWIG bindings
 $ python solver_ex.py
 
-Examples of calling conventions are contained in pmlb_driver.py which performs successive fits over pmlb datasets.
+#### C++ excutables demonstrating solver API
+build/bin
+|--DP_solver_demo   // Partition solver demo
+|--LTSS_solver_demo // Single subset (LTSS) solver demo
+
 
