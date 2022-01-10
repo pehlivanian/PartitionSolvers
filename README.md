@@ -52,6 +52,9 @@ Runtimes on Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz by varying n, T are shown a
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_by_n.jpg?raw=true)
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_with_power_fit_by_n.jpg?raw=true)
 
+### Runtimes for varying T
+![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_by_T.jpg?raw=true)
+![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/Runtimes_with_power_fit_by_T.jpg?raw=true)
 
 ## C++ api
 
