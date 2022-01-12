@@ -154,6 +154,9 @@ DPSolver::optimize() {
     optimal_score_ -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
 					    std::accumulate(b_.cbegin(), b_.cend(), 0.));
   }
+
+  // subtract regularization term
+  optimal_score_ -= gamma_ * std::pow(T_, reg_power_);
 }
 
 void
@@ -195,7 +198,7 @@ DPSolver::get_optimal_score_extern() const {
     return optimal_score_;
   }
   else {
-    return std::accumulate(score_by_subset_.cbegin()+1, score_by_subset_.cend(), 0.);
+    return std::accumulate(score_by_subset_.cbegin()+1, score_by_subset_.cend(), 0.) - gamma_ * std::pow(T_, reg_power_);
   }
 }
 

@@ -35,7 +35,18 @@ auto main() -> int {
     
     auto dp = DPSolver(n, T, a, b);
     auto dp_opt = dp.get_optimal_subsets_extern();
-    auto scores = dp.get_score_by_subset_extern();
+    auto dp_scores = dp.get_score_by_subset_extern();
+    auto dp_score = dp.get_optimal_score_extern();
+
+    auto dp_pen = DPSolver(n, T, a, b, 
+			   objective_fn::Gaussian, 
+			   false,
+			   false,
+			   1.0,
+			   2);
+    auto dp_pen_opt = dp_pen.get_optimal_subsets_extern();
+    auto dp_pen_scores = dp_pen.get_score_by_subset_extern();
+    auto dp_pen_score = dp_pen.get_optimal_score_extern();
     
     auto ltss = LTSSSolver(n, a, b);
     auto ltss_opt = ltss.get_optimal_subset_extern();
@@ -51,9 +62,19 @@ auto main() -> int {
     std::cout << "\nDPSolver subsets:\n";
     std::cout << "================\n";
     print_subsets(dp_opt);
-    std::cout << "\nScores: ";
-    std::copy(scores.begin(), scores.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::cout << "\nSubset scores: ";
+    std::copy(dp_scores.begin(), dp_scores.end(), std::ostream_iterator<float>(std::cout, " "));
     std::cout << std::endl;
+    std::cout << "\nPartition score: ";
+    std::cout << dp_score << std::endl;
+    std::cout << "\n\nDPSolver with penaly subsets:\n";
+    std::cout << "================\n";
+    print_subsets(dp_pen_opt);
+    std::cout << "\nSubset scores: ";
+    std::copy(dp_pen_scores.begin(), dp_pen_scores.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::cout << std::endl;
+    std::cout << "\nPartition score: ";
+    std::cout << dp_pen_score << std::endl;
     std::cout << "\nLTSSSolver subset:\n";
     std::cout << "=================\n";
     std::copy(ltss_opt.begin(), ltss_opt.end(), std::ostream_iterator<int>(std::cout, " "));

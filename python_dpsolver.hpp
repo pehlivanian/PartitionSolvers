@@ -12,13 +12,14 @@
 #include <type_traits>
 
 std::vector<std::vector<int> > find_optimal_partition__DP(int n,
-							 int T,
-							 std::vector<float> a,
-							 std::vector<float> b,
-							 int parametric_dist,
-							 bool risk_partitioning_objective,
-							 bool use_rational_optimization
-							 );
+							  int T,
+							  std::vector<float> a,
+							  std::vector<float> b,
+							  int parametric_dist,
+							  bool risk_partitioning_objective,
+							  bool use_rational_optimization,
+							  float gamma=0.,
+							  int reg_power=1);
 
 float find_optimal_score__DP(int n,
 			     int T,
@@ -26,15 +27,19 @@ float find_optimal_score__DP(int n,
 			     std::vector<float> b,
 			     int parametric_dist,
 			     bool risk_partitioning_objective,
-			     bool use_rational_optimization);
+			     bool use_rational_optimization,
+			     float gamma=0.,
+			     int reg_power=1);
 
 std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
-								 int T,
-								 std::vector<float> a,
-								 std::vector<float> b,
-								 int parametric_dist,
-								 bool risk_partitioning_objective,
-								 bool use_rational_optimization);
+								  int T,
+								  std::vector<float> a,
+								  std::vector<float> b,
+								  int parametric_dist,
+								  bool risk_partitioning_objective,
+								  bool use_rational_optimization,
+								  float gamma=0.,
+								  int reg_power=1);
 
 std::pair<std::vector<std::vector<int>>, float> sweep_best__DP(int n,
 							       int T,
@@ -42,7 +47,9 @@ std::pair<std::vector<std::vector<int>>, float> sweep_best__DP(int n,
 							       std::vector<float> b,
 							       int parametric_dist,
 							       bool risk_partitioning_objective,
-							       bool use_rational_optimization);
+							       bool use_rational_optimization,
+							       float gamma=0.,
+							       int reg_power=1);
 
 std::vector<std::pair<std::vector<std::vector<int>>, float>> sweep_parallel__DP(int n,
 										int T,
@@ -50,7 +57,9 @@ std::vector<std::pair<std::vector<std::vector<int>>, float>> sweep_parallel__DP(
 										std::vector<float> b,
 										int parametric_dist,
 										bool risk_partitioning_objective,
-										bool use_rational_optimization);
+										bool use_rational_optimization,
+										float gamma=0.,
+										int reg_power=1);
 
 
 #endif

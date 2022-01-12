@@ -6,7 +6,10 @@
 #include <iterator>
 #include <random>
 
+#include "score.hpp"
 #include "DP.hpp"
 #include "LTSS.hpp"
+
+using namespace Objectives;
 
 #endif

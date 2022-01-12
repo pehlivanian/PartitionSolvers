@@ -25,7 +25,9 @@ public:
 	   int T,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
-	   bool use_rational_optimization=false
+	   bool use_rational_optimization=false,
+	   float gamma=0.,
+	   int reg_power=1.
 	   ) :
     n_{static_cast<int>(a.size())},
     T_{T},
@@ -34,7 +36,9 @@ public:
     optimal_score_{0.},
     parametric_dist_{parametric_dist},
     risk_partitioning_objective_{risk_partitioning_objective},
-    use_rational_optimization_{use_rational_optimization}
+    use_rational_optimization_{use_rational_optimization},
+    gamma_{gamma},
+    reg_power_{reg_power}
     
   { _init(); }
 
@@ -44,7 +48,9 @@ public:
 	   std::vector<float> b,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
-	   bool use_rational_optimization=false
+	   bool use_rational_optimization=false,
+	   float gamma=0.,
+	   int reg_power=1.
 	   ) :
     n_{n},
     T_{T},
@@ -53,7 +59,9 @@ public:
     optimal_score_{0.},
     parametric_dist_{parametric_dist},
     risk_partitioning_objective_{risk_partitioning_objective},
-    use_rational_optimization_{use_rational_optimization}
+    use_rational_optimization_{use_rational_optimization},
+    gamma_{gamma},
+    reg_power_{reg_power}
     
   { _init(); }
 
@@ -77,6 +85,8 @@ private:
   objective_fn parametric_dist_;
   bool risk_partitioning_objective_;
   bool use_rational_optimization_;
+  float gamma_;
+  int reg_power_;
   std::unique_ptr<ParametricContext> context_;
   std::unique_ptr<LTSSSolver> LTSSSolver_;
 
