@@ -16,12 +16,16 @@ class OptimizerSWIG(object):
                  objective_fn=Distribution.GAUSSIAN,
                  risk_partitioning_objective=False, # So multiple clustering
                  use_rational_optimization=False,
+                 gamma=0.,
+                 reg_power=1.,
                  sweep_mode=False):
         self.N = len(g)
         self.num_partitions = num_partitions
         self.objective_fn = objective_fn
         self.risk_partitioning_objective = risk_partitioning_objective
         self.use_rational_optimization = use_rational_optimization
+        self.gamma = gamma
+        self.reg_power = reg_power
         self.g_c = proto.FArray()
         self.h_c = proto.FArray()        
         self.g_c = g
@@ -39,7 +43,9 @@ class OptimizerSWIG(object):
                                             self.h_c,
                                             self.objective_fn,
                                             self.risk_partitioning_objective,
-                                            self.use_rational_optimization)
+                                            self.use_rational_optimization,
+                                            self.gamma,
+                                            int(self.reg_power))
 
         else:
             return proto.optimize_one__DP(self.N,
@@ -48,7 +54,9 @@ class OptimizerSWIG(object):
                                           self.h_c,
                                           self.objective_fn,
                                           self.risk_partitioning_objective,
-                                          self.use_rational_optimization)
+                                          self.use_rational_optimization,
+                                          self.gamma,
+                                          int(self.reg_power))
 
 class EndTask(object):
     pass
@@ -61,7 +69,9 @@ class OptimizerTask(object):
                  h,
                  objective_fn,
                  risk_partitioning_objective,
-                 use_rational_optimization):
+                 use_rational_optimization,
+                 gamma,
+                 reg_power):
         g_c = proto.FArray()
         h_c = proto.FArray()        
         g_c = g
@@ -73,7 +83,9 @@ class OptimizerTask(object):
                             h_c,
                             objective_fn,
                             risk_partitioning_objective,
-                            use_rational_optimization)
+                            use_rational_optimization,
+                            gamma,
+                            reg_power)
 
     def __call__(self):
         return self.task()
@@ -85,14 +97,18 @@ class OptimizerTask(object):
               h,
               objective_fn,
               risk_partitioning_objective,
-              use_rational_optimization):
+              use_rational_optimization,
+              gamma,
+              reg_power):
         s, w = proto.optimize_one__DP(N,
                                       num_partitions,
                                       g,
                                       h,
                                       objective_fn,
                                       risk_partitioning_objective,
-                                      use_rational_optimization)
+                                      use_rational_optimization,
+                                      gamma,
+                                      int(reg_power))
         return s, w
 
 class Worker(multiprocessing.Process):

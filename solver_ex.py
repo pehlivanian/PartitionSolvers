@@ -10,6 +10,8 @@ n = 55
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian
 risk_partitioning_objective = False # False => multiple clustering score function is used
 optimized_score_calculation = False # Leave this False; only implemented for RationalScore case
+gamma = 1.0                         # coefficient for regularization term: score -= gamma * T^reg_power
+reg_power = 1                       # power for regularization term: score -= gamma * T^reg_power
 
 a_lower_limit = 0. if objective_fn == 1 else -10.; a_higher_limit = 10.
 b_lower_limit = 0.; b_higher_limit = 10.
@@ -25,13 +27,21 @@ all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                           objective_fn,
                                           risk_partitioning_objective,
                                           optimized_score_calculation)()
+all_results_pen = solverSWIG_DP.OptimizerSWIG(num_partitions,
+                                              a,
+                                              b,
+                                              objective_fn,
+                                              risk_partitioning_objective,
+                                              optimized_score_calculation,
+                                              gamma,
+                                              reg_power)()
 best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-10,
-                                          a,
-                                          b,
-                                          objective_fn,
-                                          risk_partitioning_objective,
-                                          optimized_score_calculation,
-                                          True)()
+                                                a,
+                                                b,
+                                                objective_fn,
+                                                risk_partitioning_objective,
+                                                optimized_score_calculation,
+                                                True)()
 
 
 # single_result[0] ~ single best subset
@@ -44,12 +54,17 @@ print("OPTIMAL PARTITION")
 print("=================")
 print('{!r}'.format(all_results[0]))
 print('SCORE: {}'.format(all_results[1]))
-print("SINGLE BEST SUBSET")
+print("\nOPTIMAL PARTITION (WITH PENALTY: gamma: {}, reg_power: {})".format(gamma, reg_power))
+print("=================")
+print('{!r}'.format(all_results_pen[0]))
+print('SCORE: {}'.format(all_results_pen[1]))
+print("\nSINGLE BEST SUBSET")
 print("==================")
 print('{!r}'.format(single_result[0]))
 print('SCORE: {}'.format(single_result[1]))
-print("BEST RESULT SWEEP")
+print("\nBEST RESULT SWEEP (Best partition of size [1, ..., {}]".format(len(a)-10))
 print("=================")
 print('{!r}'.format(best_result_sweep[0]))
 print('SCORE: {}'.format(best_result_sweep[1]))
 print('PARTITION SIZE: {}'.format(len(best_result_sweep[0])))
+
