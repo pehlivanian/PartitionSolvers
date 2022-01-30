@@ -7,9 +7,17 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
+#include <cmath>
 
 #include "score.hpp"
 #include "DP.hpp"
+
+class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
+};
+
+class DPSolverTestFixtureExponentialFamily : public ::testing::TestWithParam<objective_fn> {
+};
+
 
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
@@ -28,6 +36,16 @@ void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::copy(a_s.begin(), a_s.end(), a.begin());
   std::copy(b_s.begin(), b_s.end(), b.begin());
 	    
+}
+
+void sort_partition(std::vector<std::vector<int> > &v) {
+  std::sort(v.begin(), v.end(),
+	    [](const std::vector<int>& a, const std::vector<int>& b) {
+	      return (a.size() < b.size()) || 
+		((a.size() == b.size()) && 
+		 (a.at(std::distance(a.begin(), std::min_element(a.begin(), a.end()))) <
+		  b.at(std::distance(b.begin(), std::min_element(b.begin(), b.end())))));
+		});
 }
 
 void pretty_print_subsets(std::vector<std::vector<int> >& subsets) {
@@ -53,7 +71,7 @@ float rational_obj(std::vector<float> a, std::vector<float> b, int start, int en
   return num*num/den;
 }
 
-TEST(DPSolverTest, OptimizationFlag) {
+TEST_P(DPSolverTestFixture, OptimizationFlag) {
 
   int n = 100, T = 25;
   size_t NUM_CASES = 100;
@@ -64,44 +82,56 @@ TEST(DPSolverTest, OptimizationFlag) {
 
   std::vector<float> a(n), b(n);
 
+  objective_fn objective = GetParam();
+
   for (size_t i=0; i<NUM_CASES; ++i) {
     for (auto &el : a)
       el = dista(gen);
     for (auto&el : b)
       el = distb(gen);
-
-    std::vector<objective_fn> objectives = {objective_fn::Gaussian,
-					    objective_fn::Poisson,
-					    objective_fn::RationalScore};
-
-    for (auto objective : objectives) {
     
-      auto dp_unopt = DPSolver(n, T, a, b, objective, true, false);
-      auto dp_opt = DPSolver(n, T, a, b, objective, true, true);
-      
-      auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
-      auto subsets_opt = dp_opt.get_optimal_subsets_extern();
+    auto dp_unopt = DPSolver(n, T, a, b, objective, true, false);
+    auto dp_opt = DPSolver(n, T, a, b, objective, true, true);
     
-      ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
-      
-      for (size_t j=0; j<subsets_unopt.size(); ++j) {
-	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
-      }
-      
-      dp_unopt = DPSolver(n, T, a, b, objective, false, false);
-      dp_opt = DPSolver(n, T, a, b, objective, false, true);
-      
-      subsets_unopt = dp_unopt.get_optimal_subsets_extern();
-      subsets_opt = dp_opt.get_optimal_subsets_extern();
-      
-      ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
-      
-      for (size_t j=0; j<subsets_unopt.size(); ++j) {
-	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
-      }    
+    auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
+    auto subsets_opt = dp_opt.get_optimal_subsets_extern();
+    
+    ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
+    
+    for (size_t j=0; j<subsets_unopt.size(); ++j) {
+      ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
     }
+    
+    dp_unopt = DPSolver(n, T, a, b, objective, false, false);
+    dp_opt = DPSolver(n, T, a, b, objective, false, true);
+    
+    subsets_unopt = dp_unopt.get_optimal_subsets_extern();
+    subsets_opt = dp_opt.get_optimal_subsets_extern();
+    
+    ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
+    
+    for (size_t j=0; j<subsets_unopt.size(); ++j) {
+	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
+    }    
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
+			 DPSolverTestFixture, 
+			 ::testing::Values(
+					   objective_fn::Gaussian,
+					   objective_fn::Poisson,
+					   objective_fn::RationalScore
+					   )
+			 );
+
+INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
+			 DPSolverTestFixtureExponentialFamily, 
+			 ::testing::Values(
+					   objective_fn::Gaussian,
+					   objective_fn::Poisson
+					   )
+			 );
 
 TEST(DPSolverTest, Baselines ) {
 
@@ -138,8 +168,6 @@ TEST(DPSolverTest, Baselines ) {
   auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, false);
   auto opt1 = dp1.get_optimal_subsets_extern();
   
-  // sort_by_priority(a, b);
-
   auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, false);
   auto opt = dp.get_optimal_subsets_extern();
 
@@ -152,7 +180,7 @@ TEST(DPSolverTest, Baselines ) {
   }
 }
 
-TEST(DPSolverTest, OrderedProperty) {
+TEST_P(DPSolverTestFixture, OrderedProperty) {
   // Case (n,T) = (50,5)
   int n = 100, T = 20;
   
@@ -162,21 +190,22 @@ TEST(DPSolverTest, OrderedProperty) {
 
   std::vector<float> a(n), b(n);
 
+  objective_fn objective = GetParam();
   for (size_t i=0; i<5; ++i) {
     for (auto &el : a)
       el = dist(gen);
     for (auto &el : b)
       el = dist(gen);
-
+    
     // Presort
     sort_by_priority(a, b);
-
-    auto dp = DPSolver(n, T, a, b, objective_fn::Gaussian, false, false);
+    
+    auto dp = DPSolver(n, T, a, b, objective, false, false);
     auto opt = dp.get_optimal_subsets_extern();
-
+    
     int sum;
     std::vector<int> v;
-
+    
     for (auto& list : opt) {
       if (list.size() > 1) {
 	v.resize(list.size());
@@ -184,15 +213,14 @@ TEST(DPSolverTest, OrderedProperty) {
 	sum = std::accumulate(v.begin()+1, v.end(), 0);
       }
     }
-
+    
     // We ignored the first element as adjacent_difference has unintuitive
     // result for first element
     ASSERT_EQ(sum, v.size()-1);
   }
-  
 }
 
-TEST(DPSolverTest, HighestScoringSetOf2TieOutAllDists) {
+TEST_P(DPSolverTestFixtureExponentialFamily, HighestScoringSetOf2TieOutAllDists) {
   
   int NUM_CASES = 10, T = 2;
   size_t lower_n=10, upper_n=1500;
@@ -220,17 +248,14 @@ TEST(DPSolverTest, HighestScoringSetOf2TieOutAllDists) {
 
     ASSERT_GE(n, lower_n);
     ASSERT_LE(n, upper_n);
-
-    std::vector<objective_fn> objectives = {objective_fn::Poisson,
-					    objective_fn::Gaussian};
+    
+    objective_fn objective = GetParam();
 
     // RationalScore not increasing in x; test fails
-    // std::vector<objective_fn> objectives = {objective_fn::Poisson, 
-    // 				    objective_fn::Gaussian,
-    // 					    objective_fn::RationalScore};
-
-    for (auto objective : objectives) {
-      auto dp = DPSolver(n, T, a, b, objective, false, false);
+    if (objective == objective_fn::RationalScore)
+      continue;
+    
+    auto dp = DPSolver(n, T, a, b, objective, false, false);
       auto dp_opt = dp.get_optimal_subsets_extern();
       auto scores = dp.get_score_by_subset_extern();
       
@@ -238,29 +263,127 @@ TEST(DPSolverTest, HighestScoringSetOf2TieOutAllDists) {
       auto ltss_opt = ltss.get_optimal_subset_extern();
       
       if (!((ltss_opt.size() == dp_opt[1].size()) || 
-	  ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size()))))
+	    ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size()))))
 	std::cout << "FAIL!" << std::endl;
-
+      
       // It's possible that we have a tie in scores, then j=1 set is ambiguous
       ASSERT_TRUE((ltss_opt.size() == dp_opt[1].size()) || 
 		  ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size())));
-
+      
       int dp_ind = 0;
       if ((ltss_opt.size() == dp_opt[1].size()) && (ltss_opt[0] == dp_opt[1][0])) 
 	dp_ind = 1;
       
       for (size_t i=0; i<ltss_opt.size(); ++i) {
-	if (ltss_opt[i] != dp_opt[dp_ind][i]) {
-	  std::cout << "FAIL" << std::endl;
-	}
 	ASSERT_EQ(ltss_opt[i], dp_opt[dp_ind][i]);
+      }
+  }
+}
+
+TEST_P(DPSolverTestFixtureExponentialFamily, BestSweepResultIsAlwaysMostGranularPartition) {
+  int NUM_CASES = 10;
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_int_distribution<int> distn(10, 100);
+  std::uniform_real_distribution<float> dista( 1., 10.);
+  std::uniform_real_distribution<float> distb( .01, 10.);
+
+  std::vector<float> a, b;
+
+  objective_fn objective = GetParam();
+
+  for (int case_num=0; case_num<NUM_CASES; ++case_num) {
+    int n = distn(gen);
+    int T = n;
+    std::vector<float> scores(T, 0.);
+    
+    a.resize(n); b.resize(n);
+    
+    for (auto& el : a)
+      el = dista(gen);
+    for (auto& el : b)
+      el = distb(gen);
+    
+    ASSERT_GE(n, 10);
+    ASSERT_LE(n, 100);
+    
+    auto dp_sweep = DPSolver(n, T, a, b, objective, true, false, 0., 1., true);
+    auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
+    float current_best = all_parts_scores[1].second;
+    
+    for (size_t i=2; i<all_parts_scores.size(); ++i) {
+      
+      if (fabs(current_best - all_parts_scores[i].second) > std::numeric_limits<float>::epsilon()) {
+	ASSERT_GE(all_parts_scores[i].second, current_best);
+      }
+      current_best = all_parts_scores[i].second;
+    }
+  }
+}
+
+TEST_P(DPSolverTestFixture, SweepResultsMatchSingleTResults) {
+  int NUM_CASES = 50;
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_int_distribution<int> distn(50, 500);
+  std::uniform_int_distribution<int> distT(2, 8);
+  std::uniform_real_distribution<float> dista( 1., 10.);
+  std::uniform_real_distribution<float> distb( .01, 10.);
+
+  std::vector<float> a, b;
+
+  for (int case_num=0; case_num<NUM_CASES; ++case_num) {
+    int n = distn(gen);
+    int T = distT(gen);
+
+    a.resize(n); b.resize(n);
+    
+    for (auto& el : a)
+      el = dista(gen);
+    for (auto& el : b)
+      el = distb(gen);
+
+    ASSERT_GE(n, 50);
+    ASSERT_LE(n, 500);
+    ASSERT_GE(T, 2);
+    ASSERT_LE(T, 8);
+
+    objective_fn objective = GetParam();
+
+    auto dp_sweep = DPSolver(n, T, a, b, objective, true, false, 0., 1., true);
+    auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
+
+    for (size_t i=T; i>=1; --i) {
+      auto dp = DPSolver(n, i, a, b, objective, true, false);
+      auto dp_opt = dp.get_optimal_subsets_extern();
+      auto score = dp.get_optimal_score_extern();
+      auto dp_opt_sweep = all_parts_scores[i].first;
+
+      ASSERT_EQ(all_parts_scores[i].second, score);
+      ASSERT_EQ(dp_opt.size(), all_parts_scores[i].first.size());
+
+      sort_partition(dp_opt);
+      sort_partition(dp_opt_sweep);
+
+      for (size_t j=0; j<dp_opt.size(); ++j) {
+	auto arr1 = dp_opt[j];
+	auto arr2 = dp_opt_sweep[j];
+
+	ASSERT_EQ(arr1.size(), arr2.size());
+
+	std::sort(arr1.begin(), arr1.end());
+	std::sort(arr2.begin(), arr2.end());
+	for (size_t k=0; k<arr1.size(); ++k)
+	  ASSERT_EQ(arr1[k], arr2[k]);
       }
     }
   }
 
 }
 
-TEST(DPSolverTest, OptimalityTestWithRandomPartitions) {
+TEST_P(DPSolverTestFixture, OptimalityTestWithRandomPartitions) {
   int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
 
   std::default_random_engine gen;
@@ -286,7 +409,9 @@ TEST(DPSolverTest, OptimalityTestWithRandomPartitions) {
     ASSERT_GE(n, 5);
     ASSERT_LE(n, 100);
 
-    auto dp = DPSolver(n, T, a, b, objective_fn::Poisson, true, false);
+    objective_fn objective = GetParam();
+
+    auto dp = DPSolver(n, T, a, b, objective, true, false);
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto scores = dp.get_score_by_subset_extern();
 

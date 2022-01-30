@@ -19,6 +19,8 @@
 using namespace Objectives;
 
 class DPSolver {
+  using all_scores = std::pair<std::vector<std::vector<int> >, float>;
+  using all_part_scores = std::vector<all_scores>;
 public:
   DPSolver(std::vector<float> a,
 	   std::vector<float> b,
@@ -27,7 +29,8 @@ public:
 	   bool risk_partitioning_objective=false,
 	   bool use_rational_optimization=false,
 	   float gamma=0.,
-	   int reg_power=1.
+	   int reg_power=1.,
+	   bool sweep_down=false
 	   ) :
     n_{static_cast<int>(a.size())},
     T_{T},
@@ -38,7 +41,8 @@ public:
     risk_partitioning_objective_{risk_partitioning_objective},
     use_rational_optimization_{use_rational_optimization},
     gamma_{gamma},
-    reg_power_{reg_power}
+    reg_power_{reg_power},
+    sweep_down_{sweep_down}
     
   { _init(); }
 
@@ -50,7 +54,8 @@ public:
 	   bool risk_partitioning_objective=false,
 	   bool use_rational_optimization=false,
 	   float gamma=0.,
-	   int reg_power=1.
+	   int reg_power=1.,
+	   bool sweep_down=false
 	   ) :
     n_{n},
     T_{T},
@@ -61,13 +66,15 @@ public:
     risk_partitioning_objective_{risk_partitioning_objective},
     use_rational_optimization_{use_rational_optimization},
     gamma_{gamma},
-    reg_power_{reg_power}
+    reg_power_{reg_power},
+    sweep_down_{sweep_down}
     
   { _init(); }
 
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;
   float get_optimal_score_extern() const;
   std::vector<float> get_score_by_subset_extern() const;
+  all_part_scores get_all_subsets_and_scores_extern() const;
   void print_maxScore_();
   void print_nextStart_();
     
@@ -87,6 +94,8 @@ private:
   bool use_rational_optimization_;
   float gamma_;
   int reg_power_;
+  bool sweep_down_;
+  all_part_scores subsets_and_scores_;
   std::unique_ptr<ParametricContext> context_;
   std::unique_ptr<LTSSSolver> LTSSSolver_;
 
@@ -97,9 +106,9 @@ private:
   void create();
   void createContext();
   void create_multiple_clustering_case();
+  all_scores optimize_for_fixed_S(int);
   void optimize();
   void optimize_multiple_clustering_case();
-
   void sort_by_priority(std::vector<float>&, std::vector<float>&);
   void reorder_subsets(std::vector<std::vector<int> >&, std::vector<float>&);
   float compute_score(int, int);

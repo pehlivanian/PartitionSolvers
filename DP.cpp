@@ -128,35 +128,67 @@ DPSolver::create() {
   }  
 }
 
-void
-DPSolver::optimize() {
+DPSolver::all_scores
+DPSolver::optimize_for_fixed_S(int S) {
   // Pick out associated maxScores element
   int currentInd = 0, nextInd = 0;
-  for (int t=T_; t>0; --t) {
+  float optimal_score = 0.;
+  auto subsets = std::vector<std::vector<int> >(S, std::vector<int>());
+  auto score_by_subset = std::vector<float>(S, 0.);
+
+  for (int t=S; t>0; --t) {
     float score_num = 0., score_den = 0.;
     nextInd = nextStart_[currentInd][t];
     for (int i=currentInd; i<nextInd; ++i) {
-      subsets_[T_-t].push_back(priority_sortind_[i]);
+      subsets[S-t].push_back(priority_sortind_[i]);
       score_num += a_[i];
       score_den += b_[i];
     }
-    score_by_subset_[T_-t] = compute_ambient_score(score_num, score_den);
-    optimal_score_ += score_by_subset_[T_-t];
+    score_by_subset[S-t] = compute_ambient_score(score_num, score_den);
+    optimal_score += score_by_subset[S-t];
     currentInd = nextInd;
   }
 
   if (!risk_partitioning_objective_) {
-    reorder_subsets(subsets_, score_by_subset_);
+    reorder_subsets(subsets, score_by_subset);
   }
 
   // adjust cumulative score
   if (risk_partitioning_objective_) {
-    optimal_score_ -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
+    optimal_score -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
 					    std::accumulate(b_.cbegin(), b_.cend(), 0.));
   }
 
   // subtract regularization term
-  optimal_score_ -= gamma_ * std::pow(T_, reg_power_);
+  optimal_score -= gamma_ * std::pow(S, reg_power_);
+
+  // Retain score_by_subsets if S is maximal
+  if (S == T_)
+    score_by_subset_ = score_by_subset;
+
+  return all_scores{subsets, optimal_score};
+}
+
+void
+DPSolver::optimize() {
+  if (sweep_down_) {
+    int S;
+    subsets_and_scores_ = all_part_scores{static_cast<size_t>(T_+1)};
+    auto beg = subsets_and_scores_.rend();
+    for (auto it=subsets_and_scores_.rbegin(); it!=subsets_and_scores_.rend(); ++it) {
+      S = static_cast<int>(std::distance(it, beg)) - 1;
+      if (S >= 1) {
+	auto optimal = optimize_for_fixed_S(S);
+	it->first = optimal.first;
+	it->second = optimal.second;
+      }
+    }
+  }
+  else {
+    auto optimal = optimize_for_fixed_S(T_);
+    subsets_ = optimal.first;
+    optimal_score_ = optimal.second;
+  }
 }
 
 void
@@ -205,6 +237,11 @@ DPSolver::get_optimal_score_extern() const {
 std::vector<float>
 DPSolver::get_score_by_subset_extern() const {
   return score_by_subset_;
+}
+
+DPSolver::all_part_scores 
+DPSolver::get_all_subsets_and_scores_extern() const {
+  return subsets_and_scores_;
 }
 
 void

@@ -18,7 +18,8 @@ class OptimizerSWIG(object):
                  use_rational_optimization=False,
                  gamma=0.,
                  reg_power=1.,
-                 sweep_mode=False):
+                 parallel_sweep=False, # find best score among all s <= num_partitions, C++ threadpool
+                 optimize_all=False):  # return all partitions, scores for s <= num_partitions
         self.N = len(g)
         self.num_partitions = num_partitions
         self.objective_fn = objective_fn
@@ -31,10 +32,13 @@ class OptimizerSWIG(object):
         self.g_c = g
         self.h_c = h
 
-        self.sweep_mode = sweep_mode
+        self.parallel_sweep = parallel_sweep
+        self.optimize_all = optimize_all
+
+        assert not (self.parallel_sweep and self.optimize_all)
 
     def __call__(self):
-        if self.sweep_mode:
+        if self.parallel_sweep:
             # XXX
             # Use parallel mode when available
             return proto.sweep_parallel__DP(self.N,
@@ -46,7 +50,16 @@ class OptimizerSWIG(object):
                                             self.use_rational_optimization,
                                             self.gamma,
                                             int(self.reg_power))
-
+        elif self.optimize_all:
+            return proto.optimize_all__DP(self.N,
+                                          self.num_partitions,
+                                          self.g_c,
+                                          self.h_c,
+                                          self.objective_fn,
+                                          self.risk_partitioning_objective,
+                                          self.use_rational_optimization,
+                                          self.gamma,
+                                          int(self.reg_power))
         else:
             return proto.optimize_one__DP(self.N,
                                           self.num_partitions,

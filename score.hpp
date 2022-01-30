@@ -19,7 +19,6 @@ namespace Objectives {
 			    Poisson = 1, 
 			    RationalScore = 2 };
 
-  
   struct optimizationFlagException : public std::exception {
    const char* what() const throw () {
     return "Optimized version not implemented";
@@ -66,6 +65,10 @@ namespace Objectives {
 
     virtual float compute_ambient_score_multclust(float, float) = 0;
     virtual float compute_ambient_score_riskpart(float, float) = 0;
+
+    std::string getName() const { return name_; }
+    bool getRiskPartitioningObjective() const { return risk_partitioning_objective_; }
+    bool getUseRationalOptimization() const { return use_rational_optimization_; }
 
     float compute_score(int i, int j) {
       if (risk_partitioning_objective_) {

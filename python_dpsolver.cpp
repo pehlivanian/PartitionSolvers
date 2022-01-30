@@ -60,6 +60,32 @@ float find_optimal_score__DP(int n,
   return dp.get_optimal_score_extern();
 }
 
+std::vector<std::pair<std::vector<std::vector<int> >, float> > optimize_all__DP(int n,
+										int T,
+										std::vector<float> a,
+										std::vector<float> b,
+										int parametric_dist,
+										bool risk_partitioning_objective,
+										bool use_rational_optimization,
+										float gamma,
+										int reg_power) {
+  auto dp = DPSolver(n,
+		     T,
+		     a,
+		     b,
+		     static_cast<objective_fn>(parametric_dist),
+		     risk_partitioning_objective,
+		     use_rational_optimization,
+		     gamma,
+		     reg_power,
+		     true);
+  
+  return dp.get_all_subsets_and_scores_extern();
+}
+
+
+
+
 std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
 								  int T,
 								  std::vector<float> a,

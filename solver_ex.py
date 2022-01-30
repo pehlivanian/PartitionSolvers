@@ -6,7 +6,7 @@ import proto
 rng = np.random.RandomState(136)
 
 num_partitions = 2
-n = 55
+n = 10
 objective_fn = 1                    # 1 ~ Poisson, 2 ~ Gaussian
 risk_partitioning_objective = False # False => multiple clustering score function is used
 optimized_score_calculation = False # Leave this False; only implemented for RationalScore case
@@ -35,13 +35,26 @@ all_results_pen = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                               optimized_score_calculation,
                                               gamma,
                                               reg_power)()
-best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-10,
+best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-5,
                                                 a,
                                                 b,
                                                 objective_fn,
                                                 risk_partitioning_objective,
                                                 optimized_score_calculation,
-                                                True)()
+                                                gamma=0.,
+                                                reg_power=1.,
+                                                parallel_sweep=True,
+                                                optimize_all=False)()
+all_results_sweep = solverSWIG_DP.OptimizerSWIG(len(a) - 5,
+                                                a,
+                                                b,
+                                                objective_fn,
+                                                risk_partitioning_objective,
+                                                optimized_score_calculation,
+                                                gamma=0.,
+                                                reg_power=1.,
+                                                parallel_sweep=False,
+                                                optimize_all=True)()
 
 
 # single_result[0] ~ single best subset
@@ -50,19 +63,21 @@ single_result = solverSWIG_LTSS.OptimizerSWIG(a,
                                               b,
                                               objective_fn)()
 
-print("OPTIMAL PARTITION")
+import pdb; pdb.set_trace()
+
+print("OPTIMAL PARTITION (n = {}, t = {})".format(n, num_partitions))
 print("=================")
 print('{!r}'.format(all_results[0]))
 print('SCORE: {}'.format(all_results[1]))
-print("\nOPTIMAL PARTITION (WITH PENALTY: gamma: {}, reg_power: {})".format(gamma, reg_power))
-print("=================")
+print("\nOPTIMAL PARTITION (n = {}, t = {} WITH PENALTY: gamma: {}, reg_power: {})".format(n, num_partitions, gamma, reg_power))
+print("===================")
 print('{!r}'.format(all_results_pen[0]))
 print('SCORE: {}'.format(all_results_pen[1]))
 print("\nSINGLE BEST SUBSET")
-print("==================")
+print("====================")
 print('{!r}'.format(single_result[0]))
 print('SCORE: {}'.format(single_result[1]))
-print("\nBEST RESULT SWEEP (Best partition of size [1, ..., {}]".format(len(a)-10))
+print("\nBEST RESULT SWEEP (n = {}, best partition of size [1, ..., {}]".format(n, len(a)-10))
 print("=================")
 print('{!r}'.format(best_result_sweep[0]))
 print('SCORE: {}'.format(best_result_sweep[1]))

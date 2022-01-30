@@ -41,6 +41,16 @@ std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
 								  float gamma=0.,
 								  int reg_power=1);
 
+std::vector<std::pair<std::vector<std::vector<int> >, float> > optimize_all__DP(int n,
+										int T,
+										std::vector<float> a,
+										std::vector<float> b,
+										int parametric_dist,
+										bool risk_partitioning_objective,
+										bool use_rational_optimization,
+										float gamma=0.,
+										int reg_power=1.);
+
 std::pair<std::vector<std::vector<int>>, float> sweep_best__DP(int n,
 							       int T,
 							       std::vector<float> a,
@@ -60,6 +70,5 @@ std::vector<std::pair<std::vector<std::vector<int>>, float>> sweep_parallel__DP(
 										bool use_rational_optimization,
 										float gamma=0.,
 										int reg_power=1);
-
 
 #endif
