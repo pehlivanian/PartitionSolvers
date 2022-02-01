@@ -6,13 +6,14 @@ import pandas as pd
 import solverSWIG_DP
 import proto
 
-SEED = 1868
-POISSON_INTENSITY = 100
-DEVIATE_SIZE = 5000
-NUM_NULL_EXPERIMENTS = 1000
-NUM_THRESHOLD_CALCULATIONS = 1000
-NUM_EXPERIMENTS_PER_EPSILON = 1000
+SEED = 1869
+POISSON_INTENSITY = 100           # 100
+DEVIATE_SIZE = 1000               # 5000
+NUM_NULL_EXPERIMENTS = 200        # 1000
+NUM_THRESHOLD_CALCULATIONS = 200  # 1000
+NUM_EXPERIMENTS_PER_EPSILON = 200 # 1000
 NUM_EPSILON_VALUES = 11
+CLUSTER_LIST = (2,3,10)
 NUM_WORKERS = multiprocessing.cpu_count() - 1
 
 assert not DEVIATE_SIZE%2
@@ -61,23 +62,24 @@ class NullTask(object):
 
     def _task(self):
         count = 0
-        null_scores = np.zeros([len(self.range),5])
+        cluster_list = CLUSTER_LIST
+        null_scores = np.zeros([len(self.range),2*len(cluster_list)])
         for i in self.range:
             b = rng.poisson(self.poisson_intensity, size=self.deviate_size).astype(float)
             a = rng.poisson(b).astype(float)
-            result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()[1]
-            result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()[1]
-            result_rp10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,True,True)()[1]
-            result_mcd2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,False,True)()[1]
-            result_mcd3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,False,True)()[1]
-            result_mcd10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,False,True)()[1]
-            null_scores[count,:] = [result_rp2,result_rp3,result_rp10,result_mcd2,result_mcd3]
+            results_rp = [0.]*len(cluster_list)
+            results_mcd = [0.]*len(cluster_list)
+            for ind,n in enumerate(cluster_list):
+              results_rp[ind] = solverSWIG_DP.OptimizerSWIG(n,a,b,1,True,True)()[1]
+              results_mcd[ind] = solverSWIG_DP.OptimizerSWIG(n,a,b,1,False,True)()[1]              
+            null_scores[count,:] = results_rp + results_mcd
             count += 1
-        null_scores_df = pd.DataFrame(null_scores,columns=['rp2','rp3','rp10','mcd2','mcd3'])
+        null_scores_df = pd.DataFrame(null_scores, columns=['rp'+str(x) for x in cluster_list]+['mcd'+str(x) for x in cluster_list])
         return null_scores_df
 
 class QATask(object):
-  def __init__(self, num_experiments_per_epsilon, deviate_size, poisson_intensity, num_epsilon_values):
+  def __init__(self, num_true_clusters, num_experiments_per_epsilon, deviate_size, poisson_intensity, num_epsilon_values):
+    self.num_true_clusters = num_true_clusters
     self.num_experiments_per_epsilon = num_experiments_per_epsilon
     self.deviate_size = deviate_size
     self.poisson_intensity = poisson_intensity
@@ -88,65 +90,56 @@ class QATask(object):
     return self.task()
 
   def _task(self):
-    exp0_scores = np.zeros([self.num_experiments_per_epsilon*self.num_epsilon_values,4])
-    exp0_ranking_quality = np.zeros([self.num_epsilon_values,4])
+    cluster_list = CLUSTER_LIST
+    exp0_scores = np.zeros([self.num_experiments_per_epsilon*self.num_epsilon_values,len(cluster_list)+1])
+    exp0_ranking_quality = np.zeros([self.num_epsilon_values,len(cluster_list)+1])
     for j in range(self.num_epsilon_values):      
       theepsilon = 0.05*j
-      ranking_quality_rp2 = 0
-      ranking_quality_rp3 = 0
-      ranking_quality_rp10 = 0
+      ranking_quality_ind = [0.]*len(cluster_list)
       for i in range(self.num_experiments_per_epsilon):
         b = rng.poisson(self.poisson_intensity,size=self.deviate_size).astype(float)
-        q = np.concatenate([np.full(int(self.deviate_size/2),1.0-theepsilon),
-                            np.full(int(self.deviate_size/2),1.0+theepsilon)])
+        # Branch on number of true clusters
+        split = int(self.deviate_size/self.num_true_clusters)
+        resid = self.deviate_size - (split * self.num_true_clusters)
+        resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
+        splits = [split + r for r in resids]
+        levels = np.linspace(1-theepsilon*int(self.num_true_clusters/2),
+                             1+theepsilon*int(self.num_true_clusters/2),
+                             self.num_true_clusters)
+        q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
         a = rng.poisson(q*b).astype(float)
-        all_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()
-        all_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()
-        all_rp10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,True,True)()
-        score_rp2 = all_rp2[1]
-        score_rp3 = all_rp3[1]
-        score_rp10 = all_rp10[1]
-        confusion_rp2 = np.zeros([2,2])
-        confusion_rp3 = np.zeros([2,3])
-        confusion_rp10 = np.zeros([2,10])
+        all_rp = [0.]*len(cluster_list)
+        score_rp = [0.]*len(cluster_list)
+        confusion = [0.]*len(cluster_list)        
+        for ind,n in enumerate(cluster_list):
+          all_rp[ind] = solverSWIG_DP.OptimizerSWIG(n,a,b,1,True,True)()
+          score_rp[ind] = all_rp[ind][1]
+          confusion[ind] = np.zeros([self.num_true_clusters,n])
 
-        for k in range(2):
-            thepartition = np.array(all_rp2[0][k])
-            for m in range(2):
-                confusion_rp2[m,k] = len(thepartition[(thepartition >= (self.deviate_size/2)*m) & (thepartition < (self.deviate_size/2)*(m+1))])
-        ranking_quality_rp2 += ranking_quality(confusion_rp2)
-            
-        for k in range(3):
-            thepartition = np.array(all_rp3[0][k])
-            for m in range(2):
-                confusion_rp3[m,k] = len(thepartition[(thepartition >= (self.deviate_size/2)*m) & (thepartition < (self.deviate_size/2)*(m+1))])
-        ranking_quality_rp3 += ranking_quality(confusion_rp3)
-
-        for k in range(10):
-            thepartition = np.array(all_rp10[0][k])
-            for m in range(2):
-                confusion_rp10[m,k] = len(thepartition[(thepartition >= (self.deviate_size/2)*m) & (thepartition < (self.deviate_size/2)*(m+1))])
-        ranking_quality_rp10 += ranking_quality(confusion_rp10)
+        for ind,n in enumerate(cluster_list):
+          for k in range(n):
+            thepartition = np.array(all_rp[ind][0][k])            
+            for m in range(self.num_true_clusters):
+              confusion[ind][m,k] = len(thepartition[(thepartition >= (self.deviate_size/2)*m) & (thepartition < (self.deviate_size/2)*(m+1))])
+          ranking_quality_ind[ind] += ranking_quality(confusion[ind])
 
         theindex = i + j*self.num_experiments_per_epsilon
-        exp0_scores[theindex,0] = theepsilon
-        exp0_scores[theindex,1] = score_rp2        
-        exp0_scores[theindex,2] = score_rp3
-        exp0_scores[theindex,3] = score_rp10
+        exp0_scores[theindex,0] = theepsilon        
+        for ind,n in enumerate(cluster_list):          
+          exp0_scores[theindex,1+ind] = score_rp[ind]
 
-    exp0_ranking_quality[j,0] = theepsilon
-    exp0_ranking_quality[j,1] = ranking_quality_rp2 / self.num_experiments_per_epsilon
-    exp0_ranking_quality[j,2] = ranking_quality_rp3 / self.num_experiments_per_epsilon
-    exp0_ranking_quality[j,3] = ranking_quality_rp10 / self.num_experiments_per_epsilon
+      exp0_ranking_quality[j,0] = theepsilon
+      for ind,n in enumerate(cluster_list):
+        exp0_ranking_quality[j,1+ind] = ranking_quality_ind[ind] / self.num_experiments_per_epsilon
 
-    print('Finished {} out of {}'.format(j, self.num_epsilon_values))
+    print('Finished 1 out of {}'.format(j, self.num_epsilon_values))
     
-    exp0_scores_df = pd.DataFrame(exp0_scores,columns=['epsilon','rp2','rp3','rp10'])
+    exp0_scores_df = pd.DataFrame(exp0_scores,columns=['epsilon']+['rp'+str(x) for x in cluster_list])
     exp0_scores_df.to_csv("exp0_scores.csv",index_label='i')
-    exp0_ranking_quality_df = pd.DataFrame(exp0_ranking_quality,columns=['epsilon','rp2','rp3','rp10'])
+    exp0_ranking_quality_df = pd.DataFrame(exp0_ranking_quality,columns=['epsilon']+['rp'+str(x) for x in cluster_list])
 
     return exp0_ranking_quality_df
-  
+
 class EndTask(object):
     pass
         
@@ -176,6 +169,7 @@ class Baselines(object):
     self.workers = [Worker(self.tasks, self.results) for i in range(NUM_WORKERS)]
 
   def create_null_scores(self):
+    cluster_list = CLUSTER_LIST
     for worker in self.workers:
       worker.start()
     for i,slc in enumerate(self.slices):
@@ -186,7 +180,7 @@ class Baselines(object):
     self.tasks.join()
 
     left_on_queue = len(self.slices)
-    null_scores_df = pd.DataFrame(columns=['rp2','rp3','rp10','mcd2','mcd3'])
+    null_scores_df = pd.DataFrame(columns=['rp'+str(x) for x in cluster_list]+['mcd'+str(x) for x in cluster_list])
     while not self.results.empty():
       result = self.results.get(block=True)
       null_scores_df = pd.concat([null_scores_df, result])
@@ -196,24 +190,19 @@ class Baselines(object):
     null_scores_df.to_csv("null_scores.csv",index_label='i')
 
   def create_thresholds(self):
+    cluster_list = CLUSTER_LIST
     null_scores_df = pd.read_csv("null_scores.csv")
-    null_scores_rp2 = null_scores_df.loc[:,'rp2']
-    null_scores_rp3 = null_scores_df.loc[:,'rp3']
-    null_scores_rp10 = null_scores_df.loc[:,'rp10']
-    null_scores_mcd2 = null_scores_df.loc[:,'mcd2']
-    null_scores_mcd3 = null_scores_df.loc[:,'mcd3']
-    thresholds_rp2 = bootstrap_95th_percentile(null_scores_rp2)
-    thresholds_rp3 = bootstrap_95th_percentile(null_scores_rp3)
-    thresholds_rp10 = bootstrap_95th_percentile(null_scores_rp10)
-    thresholds_mcd2 = bootstrap_95th_percentile(null_scores_mcd2)
-    thresholds_mcd3 = bootstrap_95th_percentile(null_scores_mcd3)
-    thresholds_df = pd.DataFrame({'rp2':thresholds_rp2,
-                                  'rp3':thresholds_rp3,
-                                  'rp10':thresholds_rp10,
-                                  'mcd2':thresholds_mcd2,
-                                  'mcd3':thresholds_mcd3})
+    null_scores_ind = np.zeros([null_scores_df.shape[0], len(cluster_list)])
+    thresholds = dict()
+    for ind,n in enumerate(cluster_list):
+      rpCol = 'rp'+str(n)
+      mcdCol = 'mcd'+str(n)
+      thresholds[rpCol] = bootstrap_95th_percentile(null_scores_df.loc[:,rpCol])
+      thresholds[mcdCol] = bootstrap_95th_percentile(null_scores_df.loc[:,mcdCol])
+    thresholds_df = pd.DataFrame(thresholds)
+    thresholds_df = thresholds_df[['rp'+str(x) for x in cluster_list]+['mcd'+str(x) for x in cluster_list]]
     thresholds_df.to_csv("null_thresholds.csv")
-    
+        
 class QA(object):
   def __init__(self):
     self.full_range = range(NUM_EPSILON_VALUES)
@@ -222,18 +211,19 @@ class QA(object):
     self.results = multiprocessing.Queue()
     self.workers = [Worker(self.tasks, self.results) for i in range(NUM_WORKERS)]
 
-  def compute_ranking_quality(self):
+  def compute_ranking_quality(self, num_true_clusters):
+    cluster_list = CLUSTER_LIST
     for worker in self.workers:
       worker.start()
     for i,slc in enumerate(self.slices):
-      self.tasks.put(QATask(NUM_EXPERIMENTS_PER_EPSILON, DEVIATE_SIZE, POISSON_INTENSITY, NUM_EPSILON_VALUES))
+      self.tasks.put(QATask(num_true_clusters, NUM_EXPERIMENTS_PER_EPSILON, DEVIATE_SIZE, POISSON_INTENSITY, NUM_EPSILON_VALUES))
     for _ in self.workers:
       self.tasks.put(EndTask())
 
     self.tasks.join()
 
     left_on_queue = len(self.slices)
-    ranking_quality_df = pd.DataFrame(columns=['epsilon','rp2','rp3','rp10'])
+    ranking_quality_df = pd.DataFrame(columns=['epsilon']+['rp'+str(x) for x in cluster_list])
     while not self.results.empty():
       result = self.results.get(block=True)
       ranking_quality_df = pd.concat([ranking_quality_df, result])
@@ -246,100 +236,40 @@ class QA(object):
 b = Baselines()
 b.create_null_scores()
 b.create_thresholds()
+Q = QA()
+Q.compute_ranking_quality(2)
 
-################################################################
-################################################################
-# experiment 0: two partitions
-#
-num_epsilon_values = 11 # XXX ???
-exp0_scores = np.zeros([NUM_EXPERIMENTS_PER_EPSILON*num_epsilon_values,4])
-exp0_ranking_quality = np.zeros([num_epsilon_values,4])
-for j in range(num_epsilon_values):
-    theepsilon = 0.05*j
-    ranking_quality_rp2 = 0
-    ranking_quality_rp3 = 0
-    ranking_quality_rp10 = 0
-    for i in range(NUM_EXPERIMENTS_PER_EPSILON):
-        b = rng.poisson(POISSON_INTENSITY,size=DEVIATE_SIZE).astype(float)
-        q = np.concatenate([np.full(int(DEVIATE_SIZE/2),1.0-theepsilon),
-                            np.full(int(DEVIATE_SIZE/2),1.0+theepsilon)])
-        a = rng.poisson(q*b).astype(float)
-        all_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,True)()
-        all_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,True)()
-        all_rp10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,True,True)()
-        score_rp2 = all_rp2[1]
-        score_rp3 = all_rp3[1]
-        score_rp10 = all_rp10[1]
-        confusion_rp2 = np.zeros([2,2])
-        confusion_rp3 = np.zeros([2,3])
-        confusion_rp10 = np.zeros([2,10])
+# ########################################################################
 
-        for k in range(2):
-            thepartition = np.array(all_rp2[0][k])
-            for m in range(2):
-                confusion_rp2[m,k] = len(thepartition[(thepartition >= (DEVIATE_SIZE/2)*m) & (thepartition < (DEVIATE_SIZE/2)*(m+1))])
-        ranking_quality_rp2 += ranking_quality(confusion_rp2)
-            
-        for k in range(3):
-            thepartition = np.array(all_rp3[0][k])
-            for m in range(2):
-                confusion_rp3[m,k] = len(thepartition[(thepartition >= (DEVIATE_SIZE/2)*m) & (thepartition < (DEVIATE_SIZE/2)*(m+1))])
-        ranking_quality_rp3 += ranking_quality(confusion_rp3)
+# ########################################################################
+# # Compute detection power for experiment 0
+# #
+# null_thresholds_df = pd.read_csv("null_thresholds.csv")
+# exp0_scores_df = pd.read_csv("exp0_scores.csv")
+# num_epsilon_values = 11
+# methods = ['rp2','rp3','rp10']
+# detection_power = np.zeros([num_epsilon_values,1+len(methods)])
+# for j in range(num_epsilon_values):
+#     theepsilon = 0.05*j
+#     detection_power[j,0] = theepsilon
+#     i = 1
+#     for themethod in methods:
+#         thethresholds = null_thresholds_df.loc[:,themethod]
+#         thescores = exp0_scores_df[np.abs(exp0_scores_df['epsilon'] - theepsilon) < 1E-6].loc[:,themethod]
+#         thepower = 0
+#         for k in thescores:
+#             if (k <= np.min(thethresholds)):
+#               thepower += 0.
+#             elif (k >= np.max(thethresholds)):
+#               thepower += 1.
+#             else:
+#                 for m in thethresholds:
+#                     if (k > m):
+#                         thepower += 1./len(thethresholds)
+#         detection_power[j,i] = thepower/len(thescores)
+#         i += 1
 
-        for k in range(10):
-            thepartition = np.array(all_rp10[0][k])
-            for m in range(2):
-                confusion_rp10[m,k] = len(thepartition[(thepartition >= (DEVIATE_SIZE/2)*m) & (thepartition < (DEVIATE_SIZE/2)*(m+1))])
-        ranking_quality_rp10 += ranking_quality(confusion_rp10)
-
-        theindex = i + j*NUM_EXPERIMENTS_PER_EPSILON
-        exp0_scores[theindex,0] = theepsilon
-        exp0_scores[theindex,1] = score_rp2        
-        exp0_scores[theindex,2] = score_rp3
-        exp0_scores[theindex,3] = score_rp10
-
-    exp0_ranking_quality[j,0] = theepsilon
-    exp0_ranking_quality[j,1] = ranking_quality_rp2 / NUM_EXPERIMENTS_PER_EPSILON
-    exp0_ranking_quality[j,2] = ranking_quality_rp3 / NUM_EXPERIMENTS_PER_EPSILON
-    exp0_ranking_quality[j,3] = ranking_quality_rp10 / NUM_EXPERIMENTS_PER_EPSILON
-
-    print('Finished {} out of {}'.format(j, num_epsilon_values))
-    
-exp0_scores_df = pd.DataFrame(exp0_scores,columns=['epsilon','rp2','rp3','rp10'])
-exp0_scores_df.to_csv("exp0_scores.csv",index_label='i')
-exp0_ranking_quality_df = pd.DataFrame(exp0_ranking_quality,columns=['epsilon','rp2','rp3','rp10'])
-exp0_ranking_quality_df.to_csv("exp0_ranking_quality.csv",index=False)
-########################################################################
-
-########################################################################
-# Compute detection power for experiment 0
-#
-null_thresholds_df = pd.read_csv("null_thresholds.csv")
-exp0_scores_df = pd.read_csv("exp0_scores.csv")
-num_epsilon_values = 11
-methods = ['rp2','rp3','rp10']
-detection_power = np.zeros([num_epsilon_values,1+len(methods)])
-for j in range(num_epsilon_values):
-    theepsilon = 0.05*j
-    detection_power[j,0] = theepsilon
-    i = 1
-    for themethod in methods:
-        thethresholds = null_thresholds_df.loc[:,themethod]
-        thescores = exp0_scores_df[np.abs(exp0_scores_df['epsilon'] - theepsilon) < 1E-6].loc[:,themethod]
-        thepower = 0
-        for k in thescores:
-            if (k <= np.min(thethresholds)):
-              thepower += 0.
-            elif (k >= np.max(thethresholds)):
-              thepower += 1.
-            else:
-                for m in thethresholds:
-                    if (k > m):
-                        thepower += 1./len(thethresholds)
-        detection_power[j,i] = thepower/len(thescores)
-        i += 1
-
-detection_power_df = pd.DataFrame(detection_power,columns=['epsilon','rp2','rp3','rp10'])
-detection_power_df.to_csv("exp0_detection_power.csv",index=False)
-#
-########################################################################
+# detection_power_df = pd.DataFrame(detection_power,columns=['epsilon','rp2','rp3','rp10'])
+# detection_power_df.to_csv("exp0_detection_power.csv",index=False)
+# #
+# ########################################################################
