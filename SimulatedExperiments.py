@@ -6,19 +6,8 @@ import pandas as pd
 import solverSWIG_DP
 import proto
 
+
 SEED = 1869
-POISSON_INTENSITY = 100           # 100
-DEVIATE_SIZE = 1000               # 5000
-NUM_NULL_EXPERIMENTS = 200        # 1000
-NUM_THRESHOLD_CALCULATIONS = 200  # 1000
-NUM_EXPERIMENTS_PER_EPSILON = 200 # 1000
-NUM_EPSILON_VALUES = 11
-CLUSTER_LIST = (2,3,10)
-NUM_WORKERS = multiprocessing.cpu_count() - 1
-
-assert not DEVIATE_SIZE%2
-assert NUM_EPSILON_VALUES == 11
-
 rng = np.random.RandomState(SEED)
 
 def ranking_quality(m):
@@ -103,8 +92,8 @@ class QATask(object):
         resid = self.deviate_size - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
-        levels = np.linspace(1-theepsilon*int(self.num_true_clusters/2),
-                             1+theepsilon*int(self.num_true_clusters/2),
+        levels = np.linspace(theepsilon/self.num_true_clusters,
+                             2-theepsilon/self.num_true_clusters,
                              self.num_true_clusters)
         q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
         a = rng.poisson(q*b).astype(float)
@@ -115,12 +104,11 @@ class QATask(object):
           all_rp[ind] = solverSWIG_DP.OptimizerSWIG(n,a,b,1,True,True)()
           score_rp[ind] = all_rp[ind][1]
           confusion[ind] = np.zeros([self.num_true_clusters,n])
-
         for ind,n in enumerate(cluster_list):
           for k in range(n):
             thepartition = np.array(all_rp[ind][0][k])            
             for m in range(self.num_true_clusters):
-              confusion[ind][m,k] = len(thepartition[(thepartition >= (self.deviate_size/2)*m) & (thepartition < (self.deviate_size/2)*(m+1))])
+              confusion[ind][m,k] = len(thepartition[(thepartition >= splits[m]*m) & (thepartition < splits[m]*(m+1))])
           ranking_quality_ind[ind] += ranking_quality(confusion[ind])
 
         theindex = i + j*self.num_experiments_per_epsilon
@@ -232,44 +220,57 @@ class QA(object):
     assert left_on_queue == 0
   
     ranking_quality_df.to_csv("exp0_ranking_quality.csv",index=False)    
-                    
-b = Baselines()
-b.create_null_scores()
-b.create_thresholds()
-Q = QA()
-Q.compute_ranking_quality(2)
 
-# ########################################################################
+  def compute_detection_power(self):
+    cluster_list = CLUSTER_LIST
+    null_thresholds_df = pd.read_csv("null_thresholds.csv")
+    exp0_scores_df = pd.read_csv("exp0_scores.csv")
+    num_epsilon_values = NUM_EPSILON_VALUES
+    
+    methods = ['rp'+str(x) for x in cluster_list]
+    detection_power = np.zeros([num_epsilon_values,1+len(methods)])
+    for j in range(num_epsilon_values):
+      theepsilon = 0.05*j
+      detection_power[j,0] = theepsilon
+      i = 1
+      for method in methods:
+        thresholds = null_thresholds_df.loc[:,method]
+        scores = exp0_scores_df[np.abs(exp0_scores_df['epsilon'] - theepsilon) < 1E-6].loc[:,method]
+        power = 0
+        for k in scores:
+            if (k <= np.min(thresholds)):
+              power += 0.
+            elif (k >= np.max(thresholds)):
+              power += 1.
+            else:
+                for m in thresholds:
+                    if (k > m):
+                        power += 1./len(thresholds)
+        detection_power[j,i] = power/len(scores)
+        i += 1
 
-# ########################################################################
-# # Compute detection power for experiment 0
-# #
-# null_thresholds_df = pd.read_csv("null_thresholds.csv")
-# exp0_scores_df = pd.read_csv("exp0_scores.csv")
-# num_epsilon_values = 11
-# methods = ['rp2','rp3','rp10']
-# detection_power = np.zeros([num_epsilon_values,1+len(methods)])
-# for j in range(num_epsilon_values):
-#     theepsilon = 0.05*j
-#     detection_power[j,0] = theepsilon
-#     i = 1
-#     for themethod in methods:
-#         thethresholds = null_thresholds_df.loc[:,themethod]
-#         thescores = exp0_scores_df[np.abs(exp0_scores_df['epsilon'] - theepsilon) < 1E-6].loc[:,themethod]
-#         thepower = 0
-#         for k in thescores:
-#             if (k <= np.min(thethresholds)):
-#               thepower += 0.
-#             elif (k >= np.max(thethresholds)):
-#               thepower += 1.
-#             else:
-#                 for m in thethresholds:
-#                     if (k > m):
-#                         thepower += 1./len(thethresholds)
-#         detection_power[j,i] = thepower/len(thescores)
-#         i += 1
+    detection_power_df = pd.DataFrame(detection_power,columns=['epsilon']+['rp'+str(x) for x in cluster_list])
+    detection_power_df.to_csv("exp0_detection_power.csv",index=False)
 
-# detection_power_df = pd.DataFrame(detection_power,columns=['epsilon','rp2','rp3','rp10'])
-# detection_power_df.to_csv("exp0_detection_power.csv",index=False)
-# #
-# ########################################################################
+if __name__ == '__main__':
+  import sys
+  num_true_clusters = int(sys.argv[1])
+
+  POISSON_INTENSITY = 100             # 100  in paper
+  DEVIATE_SIZE = 1000                 # 5000 in paper
+  NUM_NULL_EXPERIMENTS = 200          # 1000 in paper
+  NUM_THRESHOLD_CALCULATIONS = 200    # 1000 in paper
+  NUM_EXPERIMENTS_PER_EPSILON = 200   # 1000 in paper
+  NUM_EPSILON_VALUES = 11             # 11 in paper
+  CLUSTER_LIST = (2,3,4,5,6,7,8,9,10) # (2,3,5,10) in paper
+  NUM_WORKERS = multiprocessing.cpu_count() - 1
+
+  assert not DEVIATE_SIZE%2
+  
+  b = Baselines()
+  b.create_null_scores()
+  b.create_thresholds()
+  Q = QA()
+  Q.compute_ranking_quality(num_true_clusters)
+  Q.compute_detection_power()
+
