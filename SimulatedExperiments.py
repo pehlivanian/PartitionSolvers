@@ -92,6 +92,8 @@ class QATask(object):
         resid = self.deviate_size - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
+        # XXX
+        # Fine for risk partitioning, not for multiple clustering case
         levels = np.linspace(theepsilon/self.num_true_clusters,
                              2-theepsilon/self.num_true_clusters,
                              self.num_true_clusters)
@@ -120,8 +122,6 @@ class QATask(object):
       for ind,n in enumerate(cluster_list):
         exp0_ranking_quality[j,1+ind] = ranking_quality_ind[ind] / self.num_experiments_per_epsilon
 
-    print('Finished 1 out of {}'.format(j, self.num_epsilon_values))
-    
     exp0_scores_df = pd.DataFrame(exp0_scores,columns=['epsilon']+['rp'+str(x) for x in cluster_list])
     exp0_scores_df.to_csv("exp0_scores.csv",index_label='i')
     exp0_ranking_quality_df = pd.DataFrame(exp0_ranking_quality,columns=['epsilon']+['rp'+str(x) for x in cluster_list])
@@ -258,11 +258,11 @@ if __name__ == '__main__':
 
   POISSON_INTENSITY = 100             # 100  in paper
   DEVIATE_SIZE = 1000                 # 5000 in paper
-  NUM_NULL_EXPERIMENTS = 200          # 1000 in paper
-  NUM_THRESHOLD_CALCULATIONS = 200    # 1000 in paper
-  NUM_EXPERIMENTS_PER_EPSILON = 200   # 1000 in paper
+  NUM_NULL_EXPERIMENTS = 1000         # 1000 in paper
+  NUM_THRESHOLD_CALCULATIONS = 1000    # 1000 in paper
+  NUM_EXPERIMENTS_PER_EPSILON = 1000  # 1000 in paper
   NUM_EPSILON_VALUES = 11             # 11 in paper
-  CLUSTER_LIST = (2,3,4,5,6,7,8,9,10) # (2,3,5,10) in paper
+  CLUSTER_LIST = list(range(2,11))    # (2,3,5,10) in paper
   NUM_WORKERS = multiprocessing.cpu_count() - 1
 
   assert not DEVIATE_SIZE%2

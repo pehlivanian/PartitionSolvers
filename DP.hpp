@@ -10,6 +10,9 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <math.h>
+
+#include <Eigen/Dense>
 
 #include "score.hpp"
 #include "LTSS.hpp"
@@ -17,6 +20,7 @@
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 using namespace Objectives;
+using namespace Eigen;
 
 class DPSolver {
   using all_scores = std::pair<std::vector<std::vector<int> >, float>;
@@ -30,7 +34,8 @@ public:
 	   bool use_rational_optimization=false,
 	   float gamma=0.,
 	   int reg_power=1.,
-	   bool sweep_down=false
+	   bool sweep_down=false,
+	   bool find_optimal_t=false
 	   ) :
     n_{static_cast<int>(a.size())},
     T_{T},
@@ -42,7 +47,10 @@ public:
     use_rational_optimization_{use_rational_optimization},
     gamma_{gamma},
     reg_power_{reg_power},
-    sweep_down_{sweep_down}
+    sweep_down_{sweep_down},
+    find_optimal_t_{find_optimal_t},
+    optimal_num_clusters_OLS_{0}
+
     
   { _init(); }
 
@@ -55,7 +63,8 @@ public:
 	   bool use_rational_optimization=false,
 	   float gamma=0.,
 	   int reg_power=1.,
-	   bool sweep_down=false
+	   bool sweep_down=false,
+	   bool find_optimal_t=false
 	   ) :
     n_{n},
     T_{T},
@@ -67,7 +76,9 @@ public:
     use_rational_optimization_{use_rational_optimization},
     gamma_{gamma},
     reg_power_{reg_power},
-    sweep_down_{sweep_down}
+    sweep_down_{sweep_down},
+    find_optimal_t_{find_optimal_t},
+    optimal_num_clusters_OLS_{0}
     
   { _init(); }
 
@@ -75,6 +86,7 @@ public:
   float get_optimal_score_extern() const;
   std::vector<float> get_score_by_subset_extern() const;
   all_part_scores get_all_subsets_and_scores_extern() const;
+  int get_optimal_num_clusters_OLS_extern() const;
   void print_maxScore_();
   void print_nextStart_();
     
@@ -95,7 +107,9 @@ private:
   float gamma_;
   int reg_power_;
   bool sweep_down_;
+  bool find_optimal_t_;
   all_part_scores subsets_and_scores_;
+  int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext> context_;
   std::unique_ptr<LTSSSolver> LTSSSolver_;
 

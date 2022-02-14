@@ -12,21 +12,69 @@ void print_subsets(std::vector<std::vector<int> >& subsets) {
   std::cout << "]";
 }
 
+float mixture_of_uniforms(int n) {
+  int bin = 1;
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_real_distribution<float> distmixer(0., 1.);
+  std::uniform_real_distribution<float> dista(0., 1./static_cast<float>(n));
+  
+  float mixer = distmixer(mersenne_engine);
+
+  while (bin < n) {
+    if (mixer < static_cast<float>(bin)/static_cast<float>(n))
+      break;
+    ++bin;
+  }
+  return dista(mersenne_engine) + static_cast<float>(bin)-1.;
+}
+
+
 auto main() -> int {
  
-  constexpr int n = 10;
-  constexpr int T = 3;
-  constexpr int NUM_TRIALS = 10;
+  constexpr int n = 5000;
+  constexpr int T = 20;
+  constexpr int NUM_TRIALS = 0;
+  constexpr int NUM_BEST_SWEEP_OLS_TRIALS = 100;
+  constexpr int NUM_DISTRIBUTIONS_IN_MIX = 9;
+    
+  int cluster_sum = 0;
 
   std::random_device rnd_device;
   std::mt19937 mersenne_engine{rnd_device()};
   std::uniform_real_distribution<float> dista(-10., 10.);
-  std::uniform_real_distribution<float> distb(0., 10.);
+  std::uniform_real_distribution<float> distb(1., 1.);
 
-  auto gena = [&dista, &mersenne_engine]() { return dista(mersenne_engine); };
+  // auto gena = [&dista, &mersenne_engine]() { return dista(mersenne_engine); };
+  auto gena = []() { return mixture_of_uniforms(NUM_DISTRIBUTIONS_IN_MIX); };
   auto genb = [&distb, &mersenne_engine]() { return distb(mersenne_engine); };
 
   std::vector<float> a(n), b(n);
+
+  for (int i=0; i<NUM_BEST_SWEEP_OLS_TRIALS; ++i) {
+    std::generate(a.begin(), a.end(), gena);
+    std::generate(b.begin(), b.end(), genb);
+
+    auto dp = DPSolver(n, T, a, b,
+		       objective_fn::Poisson,
+		       true,
+		       true,
+		       0.0,
+		       1.0,
+		       false,
+		       true);
+
+    auto dp_opt = dp.get_optimal_subsets_extern();
+    auto dp_scores = dp.get_score_by_subset_extern();
+    int num_clusters = dp.get_optimal_num_clusters_OLS_extern();
+
+    std::cout << "TRIAL: " << i << " optimal number of clusters: " << num_clusters << std::endl;
+    cluster_sum += num_clusters;
+    
+  }
+  std::cout << "CLUSTER COUNT: " 
+	    << static_cast<float>(cluster_sum)/static_cast<float>(NUM_BEST_SWEEP_OLS_TRIALS) 
+	    << std::endl;
 
   for (int i=0; i<NUM_TRIALS; ++i) {
     

@@ -71,7 +71,70 @@ float rational_obj(std::vector<float> a, std::vector<float> b, int start, int en
   return num*num/den;
 }
 
-TEST_P(DPSolverTestFixture, OptimizationFlag) {
+std::vector<float> form_levels(int num_true_clusters, float epsilon) {
+  std::vector<float> r; r.resize(num_true_clusters);
+  float delta = ((2-epsilon/num_true_clusters) - epsilon/num_true_clusters)/(num_true_clusters - 1);
+  for(int i=0; i<num_true_clusters; ++i) {
+    r[i] = epsilon/static_cast<float>(num_true_clusters) + i*delta;
+  }
+  return r;
+}
+
+std::vector<int> form_splits(int n, int numMixed) {
+  std::vector<int> r(numMixed);
+  int splitInd = n/numMixed;
+  int resid = n - numMixed*splitInd;
+  for (int i=0; i<n; ++i)
+    r[i] = splitInd;
+  for (int i=0; i<resid; ++i)
+    r[i]+=1;
+  std::partial_sum(r.begin(), r.end(), r.begin(), std::plus<float>());
+  return r;
+}
+
+std::vector<float> mixture_poisson_dist(int n, 
+					const std::vector<float>& b, 
+					int numMixed, 
+					float epsilon) {
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+
+  std::vector<float> a(n);
+  
+  std::vector<int> splits = form_splits(n, numMixed);
+  std::vector<float> levels = form_levels(numMixed, epsilon);
+  for (int i=0; i<n; ++i) {
+    int ind = 0;
+    while (i >= splits[ind]) {
+      ++ind;
+    }
+    std::poisson_distribution<int> dista(levels[ind]*b[i]);
+    a[i] = static_cast<float>(dista(mersenne_engine));
+  }
+
+  return a;
+
+}
+
+float mixture_of_uniforms(int n) {
+  int bin = 1;
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_real_distribution<float> distmixer(0., 1.);
+  std::uniform_real_distribution<float> dista(0., 1./static_cast<float>(n));
+  
+  float mixer = distmixer(mersenne_engine);
+
+  while (bin < n) {
+    if (mixer < static_cast<float>(bin)/static_cast<float>(n))
+      break;
+    ++bin;
+  }
+  return dista(mersenne_engine) + static_cast<float>(bin)-1.;
+}
+
+
+TEST_P(DPSolverTestFixture, TestOptimizationFlag) {
 
   int n = 100, T = 25;
   size_t NUM_CASES = 100;
@@ -133,7 +196,7 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   )
 			 );
 
-TEST(DPSolverTest, Baselines ) {
+TEST(DPSolverTest, TestBaselines ) {
 
   std::vector<float> a{0.0212651 , -0.20654906, -0.20654906, -0.20654906, -0.20654906,
       0.0212651 , -0.20654906,  0.0212651 , -0.20654906,  0.0212651 ,
@@ -165,10 +228,10 @@ TEST(DPSolverTest, Baselines ) {
   std::vector<float> b1{3.43178016, 3.92117518, 7.29049707, 7.37995406, 4.80931901, 4.38572245,
       3.98044255, 0.59677897};
 
-  auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, false);
+  auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, true);
   auto opt1 = dp1.get_optimal_subsets_extern();
   
-  auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, false);
+  auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, true);
   auto opt = dp.get_optimal_subsets_extern();
 
   for (size_t i=0; i<expected.size(); ++i) {
@@ -180,7 +243,7 @@ TEST(DPSolverTest, Baselines ) {
   }
 }
 
-TEST_P(DPSolverTestFixture, OrderedProperty) {
+TEST_P(DPSolverTestFixture, TestOrderedProperty) {
   // Case (n,T) = (50,5)
   int n = 100, T = 20;
   
@@ -200,7 +263,7 @@ TEST_P(DPSolverTestFixture, OrderedProperty) {
     // Presort
     sort_by_priority(a, b);
     
-    auto dp = DPSolver(n, T, a, b, objective, false, false);
+    auto dp = DPSolver(n, T, a, b, objective, false, true);
     auto opt = dp.get_optimal_subsets_extern();
     
     int sum;
@@ -220,7 +283,7 @@ TEST_P(DPSolverTestFixture, OrderedProperty) {
   }
 }
 
-TEST_P(DPSolverTestFixtureExponentialFamily, HighestScoringSetOf2TieOutAllDists) {
+TEST_P(DPSolverTestFixtureExponentialFamily, TestHighestScoringSetOf2TieOutAllDists) {
   
   int NUM_CASES = 10, T = 2;
   size_t lower_n=10, upper_n=1500;
@@ -255,32 +318,32 @@ TEST_P(DPSolverTestFixtureExponentialFamily, HighestScoringSetOf2TieOutAllDists)
     if (objective == objective_fn::RationalScore)
       continue;
     
-    auto dp = DPSolver(n, T, a, b, objective, false, false);
-      auto dp_opt = dp.get_optimal_subsets_extern();
-      auto scores = dp.get_score_by_subset_extern();
+    auto dp = DPSolver(n, T, a, b, objective, false, true);
+    auto dp_opt = dp.get_optimal_subsets_extern();
+    auto scores = dp.get_score_by_subset_extern();
+    
+    auto ltss = LTSSSolver(n, a, b, objective);
+    auto ltss_opt = ltss.get_optimal_subset_extern();
       
-      auto ltss = LTSSSolver(n, a, b, objective);
-      auto ltss_opt = ltss.get_optimal_subset_extern();
-      
-      if (!((ltss_opt.size() == dp_opt[1].size()) || 
-	    ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size()))))
-	std::cout << "FAIL!" << std::endl;
-      
-      // It's possible that we have a tie in scores, then j=1 set is ambiguous
-      ASSERT_TRUE((ltss_opt.size() == dp_opt[1].size()) || 
-		  ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size())));
-      
-      int dp_ind = 0;
-      if ((ltss_opt.size() == dp_opt[1].size()) && (ltss_opt[0] == dp_opt[1][0])) 
-	dp_ind = 1;
-      
-      for (size_t i=0; i<ltss_opt.size(); ++i) {
-	ASSERT_EQ(ltss_opt[i], dp_opt[dp_ind][i]);
-      }
+    if (!((ltss_opt.size() == dp_opt[1].size()) || 
+	  ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size()))))
+      std::cout << "FAIL!" << std::endl;
+    
+    // It's possible that we have a tie in scores, then j=1 set is ambiguous
+    ASSERT_TRUE((ltss_opt.size() == dp_opt[1].size()) || 
+		((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size())));
+    
+    int dp_ind = 0;
+    if ((ltss_opt.size() == dp_opt[1].size()) && (ltss_opt[0] == dp_opt[1][0])) 
+      dp_ind = 1;
+    
+    for (size_t i=0; i<ltss_opt.size(); ++i) {
+      ASSERT_EQ(ltss_opt[i], dp_opt[dp_ind][i]);
+    }
   }
 }
 
-TEST_P(DPSolverTestFixtureExponentialFamily, BestSweepResultIsAlwaysMostGranularPartition) {
+TEST_P(DPSolverTestFixtureExponentialFamily, TestBestSweepResultIsAlwaysMostGranularPartition) {
   int NUM_CASES = 10;
 
   std::default_random_engine gen;
@@ -308,11 +371,11 @@ TEST_P(DPSolverTestFixtureExponentialFamily, BestSweepResultIsAlwaysMostGranular
     ASSERT_GE(n, 10);
     ASSERT_LE(n, 100);
     
-    auto dp_sweep = DPSolver(n, T, a, b, objective, true, false, 0., 1., true);
+    auto dp_sweep = DPSolver(n, T, a, b, objective, false, true, 0., 1., true);
     auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
-    float current_best = all_parts_scores[1].second;
+    float current_best = all_parts_scores[0].second;
     
-    for (size_t i=2; i<all_parts_scores.size(); ++i) {
+    for (size_t i=1; i<all_parts_scores.size(); ++i) {
       
       if (fabs(current_best - all_parts_scores[i].second) > std::numeric_limits<float>::epsilon()) {
 	ASSERT_GE(all_parts_scores[i].second, current_best);
@@ -322,7 +385,7 @@ TEST_P(DPSolverTestFixtureExponentialFamily, BestSweepResultIsAlwaysMostGranular
   }
 }
 
-TEST_P(DPSolverTestFixture, SweepResultsMatchSingleTResults) {
+TEST_P(DPSolverTestFixture, TestSweepResultsMatchSingleTResults) {
   int NUM_CASES = 50;
 
   std::default_random_engine gen;
@@ -352,11 +415,11 @@ TEST_P(DPSolverTestFixture, SweepResultsMatchSingleTResults) {
 
     objective_fn objective = GetParam();
 
-    auto dp_sweep = DPSolver(n, T, a, b, objective, true, false, 0., 1., true);
+    auto dp_sweep = DPSolver(n, T, a, b, objective, true, true, 0., 1., true);
     auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
 
     for (size_t i=T; i>=1; --i) {
-      auto dp = DPSolver(n, i, a, b, objective, true, false);
+      auto dp = DPSolver(n, i, a, b, objective, true, true);
       auto dp_opt = dp.get_optimal_subsets_extern();
       auto score = dp.get_optimal_score_extern();
       auto dp_opt_sweep = all_parts_scores[i].first;
@@ -383,7 +446,89 @@ TEST_P(DPSolverTestFixture, SweepResultsMatchSingleTResults) {
 
 }
 
-TEST_P(DPSolverTestFixture, OptimalityTestWithRandomPartitions) {
+TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
+  int n = 100;
+  int T = 10;
+  int NUM_TRIALS = 1;
+  int NUM_EPOCHS = 1;
+  float EPSILON = 0.05;
+  float POISSON_INTENSITY = 100.;
+  
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_int_distribution<int> genNumMixed(2, 9);
+  std::poisson_distribution<int> distb(POISSON_INTENSITY);
+  auto genb = [&distb, &mersenne_engine](){ return static_cast<float>(distb(mersenne_engine)) + 0.1; };
+    
+  int cluster_sum, num_clusters, num_clusters_hat, numMixed;
+
+  objective_fn objective = GetParam();
+  
+  std::vector<float> a(n), b(n);
+
+  for (int i=0; i<NUM_EPOCHS; ++i) {
+
+    cluster_sum = 0;
+    // numMixed = genNumMixed(mersenne_engine);
+    numMixed = 4;
+
+    // auto gena = [n](){ return mixture_of_uniforms(n); };
+    // auto genb = [](){ return 1.0; };
+
+    for (int j=0; j<NUM_TRIALS; ++j) {
+
+      // generate b, poisson distributed
+      std::generate(b.begin(), b.end(), genb);
+      
+      // form split indices
+      std::vector<int> splits(numMixed);
+      int splitInd = n/numMixed;
+      int resid = n - numMixed*splitInd;
+      for (int i=0; i<n; ++i)
+	splits[i] = splitInd;
+      for (int i=0; i<resid; ++i)
+	splits[i]+=1;
+      std::partial_sum(splits.begin(), splits.end(), splits.begin(), std::plus<float>());
+      
+      // form levels
+      std::vector<float> levels(numMixed);
+      float delta = ((2-EPSILON/numMixed) - EPSILON/numMixed)/(numMixed - 1);
+      for(int i=0; i<numMixed; ++i) {
+	levels[i] = EPSILON/static_cast<float>(numMixed) + i*delta;
+      }
+
+      // generate a from b
+      for (int i=0; i<n; ++i) {
+	int ind = 0;
+	while (i >= splits[ind]) {
+	  ++ind;
+	}
+	a[i] = levels[ind]*static_cast<float>(distb(mersenne_engine)) + 0.1;
+      }
+      
+      // std::vector<float> a = mixture_poisson_dist(n, b, numMixed, EPSILON);
+      
+      // std::generate(a.begin(), a.end(), gena);
+      // std::generate(b.begin(), b.end(), genb);
+      
+      auto dp = DPSolver(n, T, a, b,
+			 objective,
+			 false,
+			 true,
+			 0.,
+			 1.,
+			 false,
+			 true);
+      
+      num_clusters = dp.get_optimal_num_clusters_OLS_extern();
+      cluster_sum += num_clusters;
+    }
+    num_clusters_hat = nearbyint(static_cast<float>(cluster_sum)/static_cast<float>(NUM_TRIALS));
+    ASSERT_EQ(num_clusters_hat, numMixed);
+  }
+}
+
+TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
   int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
 
   std::default_random_engine gen;
@@ -411,7 +556,7 @@ TEST_P(DPSolverTestFixture, OptimalityTestWithRandomPartitions) {
 
     objective_fn objective = GetParam();
 
-    auto dp = DPSolver(n, T, a, b, objective, true, false);
+    auto dp = DPSolver(n, T, a, b, objective, true, true);
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto scores = dp.get_score_by_subset_extern();
 

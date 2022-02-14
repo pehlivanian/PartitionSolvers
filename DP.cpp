@@ -137,26 +137,17 @@ DPSolver::optimize_for_fixed_S(int S) {
   auto score_by_subset = std::vector<float>(S, 0.);
 
   for (int t=S; t>0; --t) {
-    float score_num = 0., score_den = 0.;
     nextInd = nextStart_[currentInd][t];
     for (int i=currentInd; i<nextInd; ++i) {
       subsets[S-t].push_back(priority_sortind_[i]);
-      score_num += a_[i];
-      score_den += b_[i];
     }
-    score_by_subset[S-t] = compute_ambient_score(score_num, score_den);
+    score_by_subset[S-t] = compute_score(currentInd, nextInd);
     optimal_score += score_by_subset[S-t];
     currentInd = nextInd;
   }
 
   if (!risk_partitioning_objective_) {
     reorder_subsets(subsets, score_by_subset);
-  }
-
-  // adjust cumulative score
-  if (risk_partitioning_objective_) {
-    optimal_score -= compute_ambient_score(std::accumulate(a_.cbegin(), a_.cend(), 0.),
-					    std::accumulate(b_.cbegin(), b_.cend(), 0.));
   }
 
   // subtract regularization term
@@ -171,7 +162,7 @@ DPSolver::optimize_for_fixed_S(int S) {
 
 void
 DPSolver::optimize() {
-  if (sweep_down_) {
+  if (sweep_down_ || find_optimal_t_) {
     int S;
     subsets_and_scores_ = all_part_scores{static_cast<size_t>(T_+1)};
     auto beg = subsets_and_scores_.rend();
@@ -182,6 +173,43 @@ DPSolver::optimize() {
 	it->first = optimal.first;
 	it->second = optimal.second;
       }
+    }
+    if (find_optimal_t_) {
+      std::vector<float> X; X.resize(subsets_and_scores_.size()); std::iota(X.begin(), X.end(), 1.);
+      std::vector<float> scores, score_diffs;
+      scores.resize(subsets_and_scores_.size()); score_diffs.resize(subsets_and_scores_.size());
+      std::transform(subsets_and_scores_.begin(), 
+		     subsets_and_scores_.end(), scores.begin(), [](const auto &a){return a.second;});
+      std::adjacent_difference(scores.begin(), scores.end(), score_diffs.begin());
+      for (auto& el : X)
+	el = log(el);
+      for (auto& el : score_diffs)
+	el = log(el);
+
+      Eigen::MatrixXf X_mat = Eigen::MatrixXf::Zero(score_diffs.size()-2, 2);
+      Eigen::VectorXf y_vec = Eigen::VectorXf::Zero(score_diffs.size()-2);
+
+      for (size_t i=0; i<score_diffs.size()-2; ++i) {
+	X_mat(i,0) = X[i+2];
+	X_mat(i,1) = 1.;
+	y_vec(i) = score_diffs[i+2];
+      }
+
+      // OLS solution is a matrix of shape (2,1)
+      Eigen::MatrixXf beta_hat = X_mat.colPivHouseholderQr().solve(y_vec);
+
+      // Compute residuals
+      Eigen::VectorXf resids = Eigen::VectorXf::Zero(score_diffs.size()-2);
+      int bestInd = 0;
+      float minResid = std::numeric_limits<float>::max();
+      for (int i=0; i<static_cast<int>(score_diffs.size())-2; ++i) {
+	resids(i) = y_vec(i) - beta_hat(0) * X_mat(i,0) - beta_hat(1) * X_mat(i,1);
+	if (resids(i) < minResid) {
+	  bestInd = i;
+	  minResid = resids(i);
+	}
+      }
+      optimal_num_clusters_OLS_ = bestInd + 1;
     }
   }
   else {
@@ -242,6 +270,11 @@ DPSolver::get_score_by_subset_extern() const {
 DPSolver::all_part_scores 
 DPSolver::get_all_subsets_and_scores_extern() const {
   return subsets_and_scores_;
+}
+
+int
+DPSolver::get_optimal_num_clusters_OLS_extern() const {
+  return optimal_num_clusters_OLS_;
 }
 
 void

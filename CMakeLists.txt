@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.6)
 ###########################
 project(proto)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
+
 # Toggle compiler support: C++11...C++17
 option(USE_C++17 "Use C++17 compliant compiler, default is C++11" OFF)
 option(USE_C++14 "Use C++14 compliant compiler, default is C++!1" OFF)
@@ -40,6 +42,9 @@ if (GTEST)
 endif()
 
 include(UseSWIG)
+
+# Finding eigen3 path flaky in some envs; use abs path
+include_directories(/usr/local/include/eigen3)
 
 # LTSSSolver
 add_executable(LTSS_solver_demo LTSS_solver_demo.cpp)

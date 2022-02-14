@@ -3,7 +3,8 @@ import solverSWIG_DP
 import solverSWIG_LTSS
 import proto
 
-rng = np.random.RandomState(136)
+SEED = 0xC0FFEE
+rng = np.random.RandomState(SEED)
 
 num_partitions = 2
 n = 10
@@ -26,7 +27,7 @@ all_results = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                           b,
                                           objective_fn,
                                           risk_partitioning_objective,
-                                          optimized_score_calculation)()
+                                          optimized_score_calculation)
 all_results_pen = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                               a,
                                               b,
@@ -34,17 +35,7 @@ all_results_pen = solverSWIG_DP.OptimizerSWIG(num_partitions,
                                               risk_partitioning_objective,
                                               optimized_score_calculation,
                                               gamma,
-                                              reg_power)()
-best_result_sweep = solverSWIG_DP.OptimizerSWIG(len(a)-5,
-                                                a,
-                                                b,
-                                                objective_fn,
-                                                risk_partitioning_objective,
-                                                optimized_score_calculation,
-                                                gamma=0.,
-                                                reg_power=1.,
-                                                parallel_sweep=True,
-                                                optimize_all=False)()
+                                              reg_power)
 all_results_sweep = solverSWIG_DP.OptimizerSWIG(len(a) - 5,
                                                 a,
                                                 b,
@@ -53,33 +44,39 @@ all_results_sweep = solverSWIG_DP.OptimizerSWIG(len(a) - 5,
                                                 optimized_score_calculation,
                                                 gamma=0.,
                                                 reg_power=1.,
-                                                parallel_sweep=False,
-                                                optimize_all=True)()
-
+                                                sweep_all=True)
+best_result_OLS_sweep = solverSWIG_DP.OptimizerSWIG(len(a) - 5,
+                                                a,
+                                                b,
+                                                objective_fn,
+                                                risk_partitioning_objective,
+                                                optimized_score_calculation,
+                                                gamma=0.,
+                                                reg_power=1.,
+                                                sweep_best=True)
 
 # single_result[0] ~ single best subset
 # single_result[1] ~ score for best subset
 single_result = solverSWIG_LTSS.OptimizerSWIG(a,
                                               b,
-                                              objective_fn)()
+                                              objective_fn)
 
-import pdb; pdb.set_trace()
+# optimize
+all_results_r = all_results()
+all_results_pen_r = all_results_pen()
+all_results_sweep_r = all_results_sweep()
+best_result_OLS_sweep_r = best_result_OLS_sweep()
+single_result_r = single_result()
 
 print("OPTIMAL PARTITION (n = {}, t = {})".format(n, num_partitions))
 print("=================")
-print('{!r}'.format(all_results[0]))
-print('SCORE: {}'.format(all_results[1]))
+print('{!r}'.format(all_results_r[0]))
+print('SCORE: {}'.format(all_results_r[1]))
 print("\nOPTIMAL PARTITION (n = {}, t = {} WITH PENALTY: gamma: {}, reg_power: {})".format(n, num_partitions, gamma, reg_power))
 print("===================")
-print('{!r}'.format(all_results_pen[0]))
-print('SCORE: {}'.format(all_results_pen[1]))
+print('{!r}'.format(all_results_pen_r[0]))
+print('SCORE: {}'.format(all_results_pen_r[1]))
 print("\nSINGLE BEST SUBSET")
 print("====================")
-print('{!r}'.format(single_result[0]))
-print('SCORE: {}'.format(single_result[1]))
-print("\nBEST RESULT SWEEP (n = {}, best partition of size [1, ..., {}]".format(n, len(a)-10))
-print("=================")
-print('{!r}'.format(best_result_sweep[0]))
-print('SCORE: {}'.format(best_result_sweep[1]))
-print('PARTITION SIZE: {}'.format(len(best_result_sweep[0])))
-
+print('{!r}'.format(single_result_r[0]))
+print('SCORE: {}'.format(single_result_r[1]))

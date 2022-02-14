@@ -48,6 +48,7 @@ LTSSSolver::sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
 void
 LTSSSolver::createContext() {
   // create reference to score function
+  // always use multiple clustering objective
   if (parametric_dist_ == objective_fn::Gaussian) {
     context_ = std::make_unique<GaussianContext>(a_, 
 						 b_, 

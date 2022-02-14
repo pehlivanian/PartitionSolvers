@@ -19,7 +19,8 @@ class OptimizerSWIG(object):
                  gamma=0.,
                  reg_power=1.,
                  parallel_sweep=False, # find best score among all s <= num_partitions, C++ threadpool
-                 optimize_all=False):  # return all partitions, scores for s <= num_partitions
+                 sweep_all=False,      # return all partitions, scores for s <= num_partitions
+                 sweep_best=False):    # find best partition, s <= num_partitions, according to OLS criterion
         self.N = len(g)
         self.num_partitions = num_partitions
         self.objective_fn = objective_fn
@@ -33,14 +34,28 @@ class OptimizerSWIG(object):
         self.h_c = h
 
         self.parallel_sweep = parallel_sweep
-        self.optimize_all = optimize_all
+        self.sweep_all = sweep_all
+        self.sweep_best = sweep_best
 
-        assert not (self.parallel_sweep and self.optimize_all)
+        assert not (self.parallel_sweep and self.sweep_all)
+        assert not (self.sweep_all and self.sweep_best)
 
+    def compute_score(self):
+        return proto.compute_score(self.g_c,
+                                   self.h_c,
+                                   self.objective_fn,
+                                   self.risk_partitioning_objective,
+                                   self.use_rational_optimization)
+
+    def compute_partial_score(self, i, j):
+        return proto.compute_score(self.g_c[i:j],
+                                   self.h_c[i:j],
+                                   self.objective_fn,
+                                   self.risk_partitioning_objective,
+                                   self.use_rational_optimization)
+        
     def __call__(self):
         if self.parallel_sweep:
-            # XXX
-            # Use parallel mode when available
             return proto.sweep_parallel__DP(self.N,
                                             self.num_partitions,
                                             self.g_c,
@@ -50,7 +65,17 @@ class OptimizerSWIG(object):
                                             self.use_rational_optimization,
                                             self.gamma,
                                             int(self.reg_power))
-        elif self.optimize_all:
+        elif self.sweep_best:
+            return proto.sweep_best_OLS__DP(self.N,
+                                            self.num_partitions,
+                                            self.g_c,
+                                            self.h_c,
+                                            self.objective_fn,
+                                            self.risk_partitioning_objective,
+                                            self.use_rational_optimization,
+                                            self.gamma,
+                                            int(self.reg_power))
+        elif self.sweep_all:
             return proto.optimize_all__DP(self.N,
                                           self.num_partitions,
                                           self.g_c,

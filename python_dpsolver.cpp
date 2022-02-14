@@ -18,6 +18,76 @@ using namespace Objectives;
 #define DPSOLVER_(n,T,a,b) (DPSOLVER_RISK_PART_(n,T,a,b))
 #endif
 
+struct distributionException : public std::exception {
+  const char* what() const throw () {
+    return "Bad distributional assignment";
+  };
+};
+
+
+int compute_optimal_num_clusters_OLS(int n,
+				     int T,
+				     std::vector<float> a,
+				     std::vector<float> b,
+				     int parametric_dist,
+				     bool risk_partitioning_objective,
+				     bool use_rational_optimization,
+				     float gamma=0.,
+				     int reg_power=1) {
+  
+  auto dp = DPSolver(n, 
+		     T, 
+		     a, 
+		     b, 
+		     static_cast<objective_fn>(parametric_dist), 
+		     risk_partitioning_objective, 
+		     use_rational_optimization,
+		     gamma,
+		     reg_power,
+		     false,
+		     true);
+
+  return dp.get_optimal_num_clusters_OLS_extern();
+
+}
+float compute_score(std::vector<float> a, 
+		    std::vector<float> b, 
+		    int parametric_dist,
+		    bool risk_partitioning_objective,
+		    bool use_rational_optimization) {
+
+  int n = a.size();  
+  auto obj_fn = static_cast<objective_fn>(parametric_dist);
+  std::unique_ptr<ParametricContext> context;
+
+  if (obj_fn == objective_fn::Gaussian) {
+    context = std::make_unique<GaussianContext>(a, 
+						b, 
+						n, 
+						risk_partitioning_objective,
+						use_rational_optimization);
+  }
+  else if (obj_fn == objective_fn::Poisson) {
+    context = std::make_unique<PoissonContext>(a, 
+					       b, 
+					       n,
+					       risk_partitioning_objective,
+					       use_rational_optimization);
+  }
+  else if (obj_fn == objective_fn::RationalScore) {
+    context = std::make_unique<RationalScoreContext>(a, 
+						     b, 
+						     n,
+						     risk_partitioning_objective,
+						     use_rational_optimization);
+  }
+  else {
+    throw distributionException();
+  }
+
+  return context->compute_score(0, n);  
+}
+
 std::vector<std::vector<int> > find_optimal_partition__DP(int n,
 							  int T,
 							  std::vector<float> a,
@@ -84,8 +154,6 @@ std::vector<std::pair<std::vector<std::vector<int> >, float> > optimize_all__DP(
 }
 
 
-
-
 std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
 								  int T,
 								  std::vector<float> a,
@@ -108,6 +176,33 @@ std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
   float score = dp.get_optimal_score_extern();
 
   return std::make_pair(subsets, score);
+}
+
+std::pair<std::vector<std::vector<int>>, float> sweep_best_OLS__DP(int n,
+								   int T,
+								   std::vector<float> a,
+								   std::vector<float> b,
+								   int parametric_dist,
+								   bool risk_partitioning_objective,
+								   bool use_rational_optimization,
+								   float gamma,
+								   int reg_power) {
+  auto dp = DPSolver(n,
+		     T,
+		     a,
+		     b,
+		     static_cast<objective_fn>(parametric_dist),
+		     risk_partitioning_objective,
+		     use_rational_optimization,
+		     gamma,
+		     reg_power,
+		     false,
+		     true);
+  std::vector<std::vector<int> > subsets = dp.get_optimal_subsets_extern();
+  float score = dp.get_optimal_score_extern();
+  
+  return std::make_pair(subsets, score);
+  
 }
 
 std::pair<std::vector<std::vector<int>>,float> sweep_best__DP(int n,
@@ -181,18 +276,18 @@ std::vector<std::pair<std::vector<std::vector<int>>,float>> sweep_parallel__DP(i
   
   std::vector<ThreadPool::TaskFuture<void>> v;
 
-  for (int i=T; i>1; --i) {
+  for (int i=T; i>=1; --i) {
     v.push_back(DefaultThreadPool::submitJob(task, n, i, a, b, parametric_dist, risk_partitioning_objective, use_rational_optimization, gamma, reg_power));
   }	       
   for (auto& item : v) 
     item.get();
   
   std::pair<std::vector<std::vector<int>>, float> result;
-  std::vector<std::pair<std::vector<std::vector<int>>, float>> results;
+  std::vector<std::pair<std::vector<std::vector<int>>, float>> results{static_cast<size_t>(T+1)};
   while (!results_queue.empty()) {
     bool valid = results_queue.waitPop(result);
     if (valid) {
-      results.push_back(result);
+      results[result.first.size()] = result;
     }
   }
 
