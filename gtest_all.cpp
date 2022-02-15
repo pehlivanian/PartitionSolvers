@@ -84,12 +84,37 @@ std::vector<int> form_splits(int n, int numMixed) {
   std::vector<int> r(numMixed);
   int splitInd = n/numMixed;
   int resid = n - numMixed*splitInd;
-  for (int i=0; i<n; ++i)
+  for (int i=0; i<numMixed; ++i)
     r[i] = splitInd;
   for (int i=0; i<resid; ++i)
     r[i]+=1;
   std::partial_sum(r.begin(), r.end(), r.begin(), std::plus<float>());
   return r;
+}
+
+std::vector<float> mixture_gaussian_dist(int n,
+					 const std::vector<float> b,
+					 int numMixed,
+					 float sigma,
+					 float epsilon) {
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+
+  std::vector<float> a(n);
+
+  std::vector<int> splits = form_splits(n, numMixed);
+  std::vector<float> levels = form_levels(numMixed, epsilon);
+
+  for (int i=0; i<n; ++i) {
+    int ind = 0;
+    while (i >= splits[ind]) {
+      ++ind;
+    }
+    std::normal_distribution<float> dista(levels[ind]*b[i], sigma);
+    a[i] = static_cast<float>(dista(mersenne_engine));
+  }
+
+  return a;
 }
 
 std::vector<float> mixture_poisson_dist(int n, 
@@ -103,6 +128,7 @@ std::vector<float> mixture_poisson_dist(int n,
   
   std::vector<int> splits = form_splits(n, numMixed);
   std::vector<float> levels = form_levels(numMixed, epsilon);
+
   for (int i=0; i<n; ++i) {
     int ind = 0;
     while (i >= splits[ind]) {
@@ -447,73 +473,61 @@ TEST_P(DPSolverTestFixture, TestSweepResultsMatchSingleTResults) {
 }
 
 TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
-  int n = 100;
+  int n = 10000;
   int T = 10;
   int NUM_TRIALS = 1;
   int NUM_EPOCHS = 1;
-  float EPSILON = 0.05;
-  float POISSON_INTENSITY = 100.;
+  float EPSILON = 0.5;
+  float MU = 100.;
+  float SIGMA = 1.;
+  float POISSON_INTENSITY = 1000.;
   
   std::random_device rnd_device;
   std::mt19937 mersenne_engine{rnd_device()};
-  std::uniform_int_distribution<int> genNumMixed(2, 9);
-  std::poisson_distribution<int> distb(POISSON_INTENSITY);
-  auto genb = [&distb, &mersenne_engine](){ return static_cast<float>(distb(mersenne_engine)) + 0.1; };
+  std::uniform_int_distribution<int> genNumMixed(2, 5);
+  std::uniform_real_distribution<float> distb_uniform(1., 10.);
+  std::poisson_distribution<int> distb_poisson(POISSON_INTENSITY);
+  std::normal_distribution<float> distb_normal(MU, SIGMA);
+  auto genb_uniform = [&distb_uniform,
+		       &mersenne_engine](){
+    return distb_uniform(mersenne_engine);
+  };
+  auto genb_poisson = [&distb_poisson, 
+		       &mersenne_engine](){ 
+    return static_cast<float>(distb_poisson(mersenne_engine)); 
+  };
+  auto genb_normal = [&distb_normal, &mersenne_engine]() {
+    return distb_normal(mersenne_engine);
+  };
     
   int cluster_sum, num_clusters, num_clusters_hat, numMixed;
 
   objective_fn objective = GetParam();
   
-  std::vector<float> a(n), b(n);
+  std::vector<float> a, b(n);
 
   for (int i=0; i<NUM_EPOCHS; ++i) {
 
     cluster_sum = 0;
-    // numMixed = genNumMixed(mersenne_engine);
-    numMixed = 4;
-
-    // auto gena = [n](){ return mixture_of_uniforms(n); };
-    // auto genb = [](){ return 1.0; };
+    numMixed = genNumMixed(mersenne_engine);
 
     for (int j=0; j<NUM_TRIALS; ++j) {
 
-      // generate b, poisson distributed
-      std::generate(b.begin(), b.end(), genb);
-      
-      // form split indices
-      std::vector<int> splits(numMixed);
-      int splitInd = n/numMixed;
-      int resid = n - numMixed*splitInd;
-      for (int i=0; i<n; ++i)
-	splits[i] = splitInd;
-      for (int i=0; i<resid; ++i)
-	splits[i]+=1;
-      std::partial_sum(splits.begin(), splits.end(), splits.begin(), std::plus<float>());
-      
-      // form levels
-      std::vector<float> levels(numMixed);
-      float delta = ((2-EPSILON/numMixed) - EPSILON/numMixed)/(numMixed - 1);
-      for(int i=0; i<numMixed; ++i) {
-	levels[i] = EPSILON/static_cast<float>(numMixed) + i*delta;
+      switch (objective) {
+      case objective_fn::Gaussian :
+	std::generate(b.begin(), b.end(), genb_normal);
+	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+      case objective_fn::Poisson :
+	std::generate(b.begin(), b.end(), genb_poisson);
+	a = mixture_poisson_dist(n, b, numMixed, EPSILON);
+      case objective_fn::RationalScore :
+	std::generate(b.begin(), b.end(), genb_normal);
+	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
       }
-
-      // generate a from b
-      for (int i=0; i<n; ++i) {
-	int ind = 0;
-	while (i >= splits[ind]) {
-	  ++ind;
-	}
-	a[i] = levels[ind]*static_cast<float>(distb(mersenne_engine)) + 0.1;
-      }
-      
-      // std::vector<float> a = mixture_poisson_dist(n, b, numMixed, EPSILON);
-      
-      // std::generate(a.begin(), a.end(), gena);
-      // std::generate(b.begin(), b.end(), genb);
       
       auto dp = DPSolver(n, T, a, b,
 			 objective,
-			 false,
+			 true,
 			 true,
 			 0.,
 			 1.,

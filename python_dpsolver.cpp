@@ -9,8 +9,8 @@ using namespace Objectives;
 #define POISS_OBJ objective_fn::Poisson
 #define RATL_OBJ  objective_fn::RationalScore
 
-#define DPSOLVER_RISK_PART_(n,T,a,b)  (DPSolver(n, T, a, b, objective_fn::Gaussian, true, false))
-#define DPSOLVER_MULT_CLUST_(n,T,a,b) (DPSolver(n, T, a, b, objective_fn::Gaussian, false, true))
+#define DPSOLVER_RISK_PART_(n,T,a,b)  (DPSolver(n, T, a, b, GAUSS_OBJ, true, false))
+#define DPSOLVER_MULT_CLUST_(n,T,a,b) (DPSolver(n, T, a, b, GAUSS_OBJ, false, true))
 
 #ifdef MULT_CLUST
 #define DPSOLVER_(n,T,a,b) (DPSOLVER_MULT_CLUST_(n,T,a,b))
@@ -32,8 +32,8 @@ int compute_optimal_num_clusters_OLS(int n,
 				     int parametric_dist,
 				     bool risk_partitioning_objective,
 				     bool use_rational_optimization,
-				     float gamma=0.,
-				     int reg_power=1) {
+				     float gamma,
+				     int reg_power) {
   
   auto dp = DPSolver(n, 
 		     T, 

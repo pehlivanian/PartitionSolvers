@@ -20,7 +20,9 @@ int compute_optimal_num_clusters_OLS(int n,
 				     std::vector<float> b,
 				     int parametric_dist,
 				     bool risk_partitioning_objective,
-				     bool use_rational_optimization);
+				     bool use_rational_optimization,
+				     float gamma=0.,
+				     int reg_power=1.);
 
 float compute_score(std::vector<float> a, 
 		    std::vector<float> b, 

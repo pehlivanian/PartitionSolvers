@@ -34,9 +34,9 @@ auto main() -> int {
  
   constexpr int n = 5000;
   constexpr int T = 20;
-  constexpr int NUM_TRIALS = 0;
-  constexpr int NUM_BEST_SWEEP_OLS_TRIALS = 100;
-  constexpr int NUM_DISTRIBUTIONS_IN_MIX = 9;
+  constexpr int NUM_TRIALS = 5;
+  constexpr int NUM_BEST_SWEEP_OLS_TRIALS = 10;
+  constexpr int NUM_DISTRIBUTIONS_IN_MIX = 4;
     
   int cluster_sum = 0;
 
@@ -56,7 +56,7 @@ auto main() -> int {
     std::generate(b.begin(), b.end(), genb);
 
     auto dp = DPSolver(n, T, a, b,
-		       objective_fn::Poisson,
+		       objective_fn::Gaussian,
 		       true,
 		       true,
 		       0.0,
@@ -68,7 +68,9 @@ auto main() -> int {
     auto dp_scores = dp.get_score_by_subset_extern();
     int num_clusters = dp.get_optimal_num_clusters_OLS_extern();
 
-    std::cout << "TRIAL: " << i << " optimal number of clusters: " << num_clusters << std::endl;
+    std::cout << "TRIAL: " << i << " optimal number of clusters: " 
+	      << num_clusters << " vs theoretical: " << NUM_DISTRIBUTIONS_IN_MIX
+	      << std::endl;
     cluster_sum += num_clusters;
     
   }
@@ -77,52 +79,63 @@ auto main() -> int {
 	    << std::endl;
 
   for (int i=0; i<NUM_TRIALS; ++i) {
-    
-    std::generate(a.begin(), a.end(), gena);
-    std::generate(b.begin(), b.end(), genb);
-    
-    auto dp = DPSolver(n, T, a, b);
-    auto dp_opt = dp.get_optimal_subsets_extern();
-    auto dp_scores = dp.get_score_by_subset_extern();
-    auto dp_score = dp.get_optimal_score_extern();
+    constexpr int m = 25;
+    constexpr int S = 2;
 
-    auto dp_pen = DPSolver(n, T, a, b, 
-			   objective_fn::Gaussian, 
-			   false,
-			   false,
-			   1.0,
-			   2);
-    auto dp_pen_opt = dp_pen.get_optimal_subsets_extern();
-    auto dp_pen_scores = dp_pen.get_score_by_subset_extern();
-    auto dp_pen_score = dp_pen.get_optimal_score_extern();
+    std::vector<float> c(m), d(m);
     
-    auto ltss = LTSSSolver(n, a, b);
+    std::uniform_real_distribution<float> distc(-10., 10.);
+    std::uniform_real_distribution<float> distd(1., 1.);
+    
+    auto genc = [&distc, &mersenne_engine]() { return distc(mersenne_engine); };
+    auto gend = [&distd, &mersenne_engine]() { return distd(mersenne_engine); };
+
+    std::generate(c.begin(), c.end(), genc);
+    std::generate(d.begin(), d.end(), gend);
+    
+    auto dp_rp = DPSolver(m, S, c, d,
+			  objective_fn::Gaussian,
+			  true,
+			  true);
+    auto dp_rp_opt = dp_rp.get_optimal_subsets_extern();
+    auto dp_rp_scores = dp_rp.get_score_by_subset_extern();
+    auto dp_rp_score = dp_rp.get_optimal_score_extern();
+
+    auto dp_mc = DPSolver(m, S, c, d, 
+			  objective_fn::Gaussian, 
+			  false,
+			  true);
+    auto dp_mc_opt = dp_mc.get_optimal_subsets_extern();
+    auto dp_mc_scores = dp_mc.get_score_by_subset_extern();
+    auto dp_mc_score = dp_mc.get_optimal_score_extern();
+    
+    auto ltss = LTSSSolver(m, c, d);
     auto ltss_opt = ltss.get_optimal_subset_extern();
     auto ltss_score = ltss.get_optimal_score_extern();
     
     std::cout << "\n========\nTRIAL: " << i << "\n========\n";
     std::cout << "\na: { ";
-    std::copy(a.begin(), a.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::copy(c.begin(), c.end(), std::ostream_iterator<float>(std::cout, " "));
     std::cout << "}" << std::endl;
     std::cout << "b: { ";
-    std::copy(b.begin(), b.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::copy(d.begin(), d.end(), std::ostream_iterator<float>(std::cout, " "));
     std::cout << "}" << std::endl;
-    std::cout << "\nDPSolver subsets:\n";
+    std::cout << "\nDPSolver risk partitioning subsets:\n";
     std::cout << "================\n";
-    print_subsets(dp_opt);
+    print_subsets(dp_rp_opt);
     std::cout << "\nSubset scores: ";
-    std::copy(dp_scores.begin(), dp_scores.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::copy(dp_rp_scores.begin(), dp_rp_scores.end(), std::ostream_iterator<float>(std::cout, " "));
     std::cout << std::endl;
     std::cout << "\nPartition score: ";
-    std::cout << dp_score << std::endl;
-    std::cout << "\n\nDPSolver with penaly subsets:\n";
+    std::cout << dp_rp_score << std::endl;
+    std::cout << "\n\nDPSolver multiple clustering subsets:\n";
     std::cout << "================\n";
-    print_subsets(dp_pen_opt);
+    print_subsets(dp_mc_opt);
     std::cout << "\nSubset scores: ";
-    std::copy(dp_pen_scores.begin(), dp_pen_scores.end(), std::ostream_iterator<float>(std::cout, " "));
+    std::copy(dp_mc_scores.begin(), dp_mc_scores.end(), std::ostream_iterator<float>(std::cout, " "));
     std::cout << std::endl;
     std::cout << "\nPartition score: ";
-    std::cout << dp_pen_score << std::endl;
+    std::cout << dp_mc_score << std::endl;
     std::cout << "\nLTSSSolver subset:\n";
     std::cout << "=================\n";
     std::copy(ltss_opt.begin(), ltss_opt.end(), std::ostream_iterator<int>(std::cout, " "));
