@@ -9,6 +9,7 @@ as described below. The routines and preset objective functions correspond to th
 - C++, Python interface
 
 
+## Description 
 Utilities to demonstrate use of the consecutive partitions property (CPP) in combinatorial optimization problems, notably those arising in the context of Spatial Scan Statistics. The routines were used to generate tables, figures for 
 
 Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
