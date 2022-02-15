@@ -488,10 +488,6 @@ TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
   std::uniform_real_distribution<float> distb_uniform(1., 10.);
   std::poisson_distribution<int> distb_poisson(POISSON_INTENSITY);
   std::normal_distribution<float> distb_normal(MU, SIGMA);
-  auto genb_uniform = [&distb_uniform,
-		       &mersenne_engine](){
-    return distb_uniform(mersenne_engine);
-  };
   auto genb_poisson = [&distb_poisson, 
 		       &mersenne_engine](){ 
     return static_cast<float>(distb_poisson(mersenne_engine)); 

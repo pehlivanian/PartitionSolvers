@@ -34,7 +34,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
 # SWIG, Python
-find_package(SWIG REQUIRED)
+if (SWIG_BINDINGS)
+  find_package(SWIG REQUIRED)
+endif()
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs REQUIRED)
 if (GTEST)
@@ -110,10 +112,10 @@ target_link_libraries(DP LTSS)
 #########################################################
 # To compile swig c++ python bindings from command line #
 #########################################################
-# To generate c++17-compliant swig bindings
+# To generate c++14-compliant swig bindings
 # $ swig -c++ -python proto.i
-# $ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
-# $ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+# $ g++ -std=c++14 -c -fPIC -O3 -I/usr/local/include/eigen3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
+# $ g++ -std=c++14 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
 
 # Test:
 # $ python solver_ex.py

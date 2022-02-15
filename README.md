@@ -84,6 +84,7 @@ $ ./runTimeGraphs.sh 5000 100 10 10
 ### Build requirements:
 - cmake
 - swig
+- eigen >= 3.0
 - google mock, test [optional]
 
 ### C++ cmake build options: {CMAKE_BUILD_TYPE, GTEST, SWIG_BINDINGS, USE_C++{11,14,17}}

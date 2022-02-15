@@ -46,7 +46,7 @@ auto main(int argc, char **argv) -> int {
   auto genb = [&distb, &mersenne_engine](){ return distb(mersenne_engine); };
 
   using dur = std::chrono::high_resolution_clock::duration::rep;
-  std::vector<std::vector<dur>> times(n+1);
+  std::vector<std::vector<dur> > times(n+1);
   for (int i=0; i<=n; ++i)
     {
       times[i] = std::vector<dur>(T+1);

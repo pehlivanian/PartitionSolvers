@@ -178,7 +178,7 @@ std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
   return std::make_pair(subsets, score);
 }
 
-std::pair<std::vector<std::vector<int>>, float> sweep_best_OLS__DP(int n,
+std::pair<std::vector<std::vector<int> >, float> sweep_best_OLS__DP(int n,
 								   int T,
 								   std::vector<float> a,
 								   std::vector<float> b,
@@ -205,7 +205,7 @@ std::pair<std::vector<std::vector<int>>, float> sweep_best_OLS__DP(int n,
   
 }
 
-std::pair<std::vector<std::vector<int>>,float> sweep_best__DP(int n,
+std::pair<std::vector<std::vector<int> >,float> sweep_best__DP(int n,
 							      int T,
 							      std::vector<float> a,
 							      std::vector<float> b,
@@ -216,7 +216,7 @@ std::pair<std::vector<std::vector<int>>,float> sweep_best__DP(int n,
 							      int reg_power) {
   
   float best_score = std::numeric_limits<float>::lowest(), score;
-  std::vector<std::vector<int>> subsets;
+  std::vector<std::vector<int> > subsets;
 
   for (int i=T; i>1; --i) {
     auto dp = DPSolver(n,
@@ -240,7 +240,7 @@ std::pair<std::vector<std::vector<int>>,float> sweep_best__DP(int n,
   return std::make_pair(subsets, best_score);
 }
 
-std::vector<std::pair<std::vector<std::vector<int>>,float>> sweep_parallel__DP(int n,
+std::vector<std::pair<std::vector<std::vector<int> >,float> > sweep_parallel__DP(int n,
 									       int T,
 									       std::vector<float> a,
 									       std::vector<float> b,
@@ -250,7 +250,7 @@ std::vector<std::pair<std::vector<std::vector<int>>,float>> sweep_parallel__DP(i
 									       float gamma,
 									       int reg_power) {
 
-  ThreadsafeQueue<std::pair<std::vector<std::vector<int>>, float>> results_queue;
+  ThreadsafeQueue<std::pair<std::vector<std::vector<int> >, float> > results_queue;
 
   auto task = [&results_queue](int n,
 			       int i,
@@ -274,7 +274,7 @@ std::vector<std::pair<std::vector<std::vector<int>>,float>> sweep_parallel__DP(i
 				      dp.get_optimal_score_extern()));
   };
   
-  std::vector<ThreadPool::TaskFuture<void>> v;
+  std::vector<ThreadPool::TaskFuture<void> > v;
 
   for (int i=T; i>=1; --i) {
     v.push_back(DefaultThreadPool::submitJob(task, n, i, a, b, parametric_dist, risk_partitioning_objective, use_rational_optimization, gamma, reg_power));
@@ -282,8 +282,8 @@ std::vector<std::pair<std::vector<std::vector<int>>,float>> sweep_parallel__DP(i
   for (auto& item : v) 
     item.get();
   
-  std::pair<std::vector<std::vector<int>>, float> result;
-  std::vector<std::pair<std::vector<std::vector<int>>, float>> results{static_cast<size_t>(T+1)};
+  std::pair<std::vector<std::vector<int> >, float> result;
+  std::vector<std::pair<std::vector<std::vector<int> >, float> > results{static_cast<size_t>(T+1)};
   while (!results_queue.empty()) {
     bool valid = results_queue.waitPop(result);
     if (valid) {

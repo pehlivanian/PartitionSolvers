@@ -79,7 +79,7 @@ std::pair<std::vector<std::vector<int> >, float> sweep_best_OLS__DP(int n,
 								    float gamma=0.,
 								    int reg_power=1.);
 
-std::pair<std::vector<std::vector<int>>, float> sweep_best__DP(int n,
+std::pair<std::vector<std::vector<int> >, float> sweep_best__DP(int n,
 							       int T,
 							       std::vector<float> a,
 							       std::vector<float> b,
@@ -89,7 +89,7 @@ std::pair<std::vector<std::vector<int>>, float> sweep_best__DP(int n,
 							       float gamma=0.,
 							       int reg_power=1);
 
-std::vector<std::pair<std::vector<std::vector<int>>, float>> sweep_parallel__DP(int n,
+std::vector<std::pair<std::vector<std::vector<int> >, float> > sweep_parallel__DP(int n,
 										int T,
 										std::vector<float> a,
 										std::vector<float> b,
