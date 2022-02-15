@@ -1,4 +1,14 @@
 # PartitionSolvers
+## Summary: 
+We provide a set of solvers for the program
+<img src="https://latex.codecogs.com/svg.image?\mathcal{V}&space;=&space;\{&space;1,&space;\dots,&space;n\}" title="\mathcal{V} = \{ 1, \dots, n\}" />
+as described below. The routines and preset objective functions correspond to the Poisson, Gaussian population- and expectation-based Spatial Scan Statistic, see examples below. Features
+- Choice of Gaussian, Poisson, or Rational score function
+- Further specification of risk partitioning or multiple clustering objective
+- OLS-based optimal paritition size determination
+- C++, Python interface
+
+
 Utilities to demonstrate use of the consecutive partitions property (CPP) in combinatorial optimization problems, notably those arising in the context of Spatial Scan Statistics. The routines were used to generate tables, figures for 
 
 Charles A. Pehlivanian, Daniel B. Neill, **Efficient Optimization of Partition Scan Statistics via the Consecutive Partitions Property**, preprint, 2021 
@@ -97,6 +107,7 @@ Demos, unittests are straightforward. To generate runtime charts:
 Google test suite for C++ engine run via
 ```
 $ ./build/bin/gtest_all
+
 [==========] Running 20 tests from 3 test suites.
 [----------] Global test environment set-up.
 [----------] 1 test from DPSolverTest
@@ -180,10 +191,6 @@ In [3]: pprint(get_paths())
  'stdlib': '/usr/lib/python3.6'}
 ```
 
-#### Unittests for C++ object libs
-```
-$ ./build/bin/gtest_all
-```
 #### Test of SWIG bindings
 ```
 $ python solver_ex.py
