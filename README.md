@@ -14,7 +14,7 @@ for f satsifying certain regularity conditions. Note that the cardinality of the
 
 In the spatial scan statistics partition setting, as opposed to the single subset case, the usual population-based and expectation-based approaches generalize to two objectives and two optimal problems: risk partitioning (optimal allocation of risk across subsets) and multiple clustering (optimal identification of highest scoring cluster configuration). Closed form objective functions can be computed for distributions belonging to a separable exponential family [](https://en.wikipedia.org/wiki/Exponential_family). For the risk partitioning problem, the objective is naturally expressed as an F-divergence, while in the multiple clustering case, it is a Bregman divergence. The resulting maximization problem above then admits an exact solution in <img src="https://latex.codecogs.com/svg.image?\mathcal{O}\(n^2t\)" title="\mathcal{O}\(n^2t\)" /> time. Note that a naive maximization over all partitions is infeasible. 
 
-For the NYC census track data multiple clustering problem below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind with more than 1256 digits:
+For example, for the NYC census track data multiple clustering problem below, there are 2089 tracts and 4 subsets per partition. The number of partitions of size 4 of a 2089 element set is a Stirling number of the second kind with more than 1256 digits:
  
 ```
 In [1]: stir = Stirling_n_k(2089,4); stir
@@ -35,7 +35,7 @@ Out[2]: 1256.3231106424016
 
 ```
 
-We display an exact solution over this space obtained in ~ 300 millis on a single Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz below:
+We display an exact solution over this space obtained in ~ 100 millis on a single Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz in the heat maps below.
 
 ### Prostate cancer incidence for NYC census tract data:
 ![plot](https://github.com/pehlivanian/PartitionSolvers/blob/main/figures/NYC_prostate_5_risk_part_Blues.jpg?raw=true)
@@ -94,6 +94,65 @@ Aside from the SWIG python binaries, the builds creates the executables:
 
 Demos, unittests are straightforward. To generate runtime charts:
 
+Google test suite for C++ engine run via
+```
+$ ./build/bin/gtest_all
+[==========] Running 20 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from DPSolverTest
+[ RUN      ] DPSolverTest.TestBaselines
+[       OK ] DPSolverTest.TestBaselines (0 ms)
+[----------] 1 test from DPSolverTest (0 ms total)
+
+[----------] 15 tests from DPSolverTests/DPSolverTestFixture
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/0
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/0 (99 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/1
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/1 (103 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/2
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/2 (98 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/0
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/0 (1 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/1
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/1 (1 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/2
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/2 (1 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/0
+[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/0 (151 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/1
+[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/1 (162 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/2
+[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/2 (148 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/0
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/0 (1219 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/1
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/1 (1201 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/2
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/2 (983 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/0
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/0 (159 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/1
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/1 (137 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/2
+[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/2 (138 ms)
+[----------] 15 tests from DPSolverTests/DPSolverTestFixture (4601 ms total)
+
+[----------] 4 tests from DPSolverTests/DPSolverTestFixtureExponentialFamily
+[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/0
+[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/0 (79 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/1
+[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/1 (66 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/0
+[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/0 (8 ms)
+[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/1
+[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/1 (2 ms)
+[----------] 4 tests from DPSolverTests/DPSolverTestFixtureExponentialFamily (155 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 3 test suites ran. (4756 ms total)
+[  PASSED  ] 20 tests.
+
+```
 
 
 ## Python api
