@@ -12,7 +12,12 @@
 #include <cmath>
 #include <math.h>
 
-#include <Eigen/Dense>
+#if !IS_CXX_11 && !(__cplusplus == 201103L)
+  #include <Eigen/Dense>
+  using namespace Eigen;
+#else
+  #include "port_utils.hpp"
+#endif
 
 #include "score.hpp"
 #include "LTSS.hpp"
@@ -20,7 +25,6 @@
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 using namespace Objectives;
-using namespace Eigen;
 
 class DPSolver {
   using all_scores = std::pair<std::vector<std::vector<int> >, float>;

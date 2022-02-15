@@ -168,8 +168,11 @@ for num_trial in range(NUM_TRIALS):
     ddf = df.diff(axis=1)
     ddf = ddf.drop(columns=['rp1'])
     ddf['rp2'] = df['rp2']
-    
-    print("OPTIMAL OLS T (RISK PART) VS THEORETICAL T: (n = {}, max t = {})".format(n, max_num_partitions))
+
+    print("NATIVE C++ PYTHON OPTIMAL OLS T (RISK PART) VS THEORETICAL T: (n = {}, max t = {})".format(n, max_num_partitions))
+    print("=============")
+    print('Optimal t: {} Theoretical t: {}\n'.format(best_result_OLS_sweep_r, num_true_clusters))    
+    print("OFFLINE PYTHON OPTIMAL OLS T (RISK PART) VS THEORETICAL T: (n = {}, max t = {})".format(n, max_num_partitions))
     print("=============")
     print('Optimal t: {} Theoretical t: {}\n'.format(fit(ddf.iloc[0,:].values), num_true_clusters))
 

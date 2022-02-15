@@ -10,6 +10,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 # Toggle compiler support: C++11...C++17
 option(USE_C++17 "Use C++17 compliant compiler, default is C++11" OFF)
 option(USE_C++14 "Use C++14 compliant compiler, default is C++!1" OFF)
+option(USE_C++11 "Use C++11 compliant compiler, default is C++11" ON)
 option(GTEST "Compile google tests, default is OFF" OFF)
 option(SWIG_BINDINGS "Compile SWIG bindings for python" ON)
 
@@ -112,10 +113,16 @@ target_link_libraries(DP LTSS)
 #########################################################
 # To compile swig c++ python bindings from command line #
 #########################################################
-# To generate c++14-compliant swig bindings
+# To generate swig bindings [C++11]
+# $ swig -c++ -python proto.i
+# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
+# $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+
+# To generate swig bindings [>=C++14]
 # $ swig -c++ -python proto.i
 # $ g++ -std=c++14 -c -fPIC -O3 -I/usr/local/include/eigen3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
 # $ g++ -std=c++14 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+
 
 # Test:
 # $ python solver_ex.py

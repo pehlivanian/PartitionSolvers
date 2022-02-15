@@ -175,6 +175,7 @@ DPSolver::optimize() {
       }
     }
     if (find_optimal_t_) {
+#if (!IS_CXX_11) && !(__cplusplus == 201103L) 
       std::vector<float> X; X.resize(subsets_and_scores_.size()); std::iota(X.begin(), X.end(), 1.);
       std::vector<float> scores, score_diffs;
       scores.resize(subsets_and_scores_.size()); score_diffs.resize(subsets_and_scores_.size());
@@ -210,6 +211,9 @@ DPSolver::optimize() {
 	}
       }
       optimal_num_clusters_OLS_ = bestInd + 1;
+#else
+      optimal_num_clusters_OLS_ = -1;
+#endif
     }
   }
   else {
