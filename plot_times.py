@@ -40,6 +40,7 @@ FIT_POWER_CURVE = True
 
 def plot_single(beta, xlabel, destPath):
     plot.plot(xaxis, yfitaxis, label='fit: power: {:2.4f}'.format(o.beta[2]))
+    labelCount+=1
     plot.xlabel(xlabel)
     plot.ylabel('CPU time (seconds)')
     plot.title('Power law fit: ({:2.4e}) + ({:2.4e})x^({:2.4f})'.format(*o.beta.tolist()))
@@ -86,19 +87,29 @@ df_bkup = df.copy()
 
 if (BY_N):
     xaxis = df.index.to_list()
-    xlabel = 'n ~ Size of ground set'        
+    xlabel = 'n ~ Size of ground set'
+    maxLabels = 12; labelCount = 1        
     for ind in range(0,df.shape[1]):
         yaxis = [x/1000/1000 for x in df.iloc[:,ind].values]
-        plot.plot(xaxis, yaxis, label='t = {}'.format(Ts[ind]))
+        if labelCount <= maxLabels:
+            plot.plot(xaxis, yaxis, label='t = {}'.format(Ts[ind]))
+        else:
+            plot.plot(xaxis, yaxis)
+        labelCount+=1
 plot_multiple(xlabel, CPUInfo, 'Runtimes_by_n.pdf')
 
 if (BY_T):
     df = df_bkup.T
     xaxis = df.index.to_list()
-    xlabel = 'T ~ Number of subsets'        
+    xlabel = 'T ~ Number of subsets'
+    maxLabels = 12; labelCount = 1    
     for ind in range(0, df.shape[1]):
         yaxis = [x/1000/1000 for x in df.iloc[:,ind].values]
-        plot.plot(xaxis, yaxis, label='n = {}'.format(Ns[ind]))
+        if labelCount <= maxLabels:
+            plot.plot(xaxis, yaxis, label='n = {}'.format(Ns[ind]))
+        else:
+            plot.plot(xaxis, yaxis)
+        labelCount+=1
 plot_multiple(xlabel, CPUInfo, 'Runtimes_by_T.pdf')
 
 if (FIT_POWER_CURVE):
