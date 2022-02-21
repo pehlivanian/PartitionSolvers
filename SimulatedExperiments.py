@@ -44,7 +44,7 @@ class NullTask(object):
         self.poisson_intensity = poisson_intensity
         self.deviate_size = num_deviates
         self.range = range
-        self.task = partial(self._task)
+        self.task = self._task
 
     def __call__(self):
         return self.task()
@@ -154,7 +154,7 @@ class Baselines(object):
     self.slices = slice_range(self.full_range)
     self.tasks = multiprocessing.JoinableQueue()
     self.results = multiprocessing.Queue()
-    self.workers = [Worker(self.tasks, self.results) for i in range(NUM_WORKERS)]
+    self.workers = [Worker(self.tasks, self.results) for _ in range(NUM_WORKERS)]
 
   def create_null_scores(self):
     cluster_list = CLUSTER_LIST

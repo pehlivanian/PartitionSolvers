@@ -26,7 +26,7 @@ auto main(int argc, char **argv) -> int {
   // optimized. Optimized should always be turned on; it uses a lookup table of order n^2 to
   // gain much runtime efficiency.
   //
-  auto dist = objective_fn::Poisson;
+  auto dist = objective_fn::Gaussian;
   bool risk_partitioning = true;
   bool optimized = true;
   //
@@ -58,11 +58,6 @@ auto main(int argc, char **argv) -> int {
   for (int sampleSize=T; sampleSize<=n; sampleSize+=NStride) { 
     // size of partition ranges from TStride, 2*TStride, ..., T
     for (int numParts=TStride; numParts<=T; numParts+=TStride) {
-
-
-  // for (int sampleSize=n; sampleSize<=n; sampleSize+=stride) {
-  // for (int numParts=10;numParts<=T;numParts+=partStride) {
-
       if (sampleSize > numParts) {
 
 	std::vector<float> a(sampleSize), b(sampleSize);

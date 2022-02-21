@@ -40,7 +40,6 @@ FIT_POWER_CURVE = True
 
 def plot_single(beta, xlabel, destPath):
     plot.plot(xaxis, yfitaxis, label='fit: power: {:2.4f}'.format(o.beta[2]))
-    labelCount+=1
     plot.xlabel(xlabel)
     plot.ylabel('CPU time (seconds)')
     plot.title('Power law fit: ({:2.4e}) + ({:2.4e})x^({:2.4f})'.format(*o.beta.tolist()))
