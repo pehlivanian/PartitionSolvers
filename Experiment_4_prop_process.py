@@ -38,7 +38,9 @@ for filepart in stats_for_report:
         
     plot.legend()
     plot.grid(True)
-    plot.show()
+    plot.pause(1e-2)
+    import pdb; pdb.set_trace()
+    plot.savefig('.'.join([titleMap[filepart].replace(' ','_'),'pdf']))
     plot.close()
     
 

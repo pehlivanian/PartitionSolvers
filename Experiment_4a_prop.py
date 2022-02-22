@@ -54,38 +54,38 @@ qdim = 500
 
 ################################################################
 # null experiments
-rng = np.random.default_rng(12345)
-num_null_experiments = 500
-null_scores = np.zeros([num_null_experiments,5])
-for i in range(num_null_experiments):
-    b = rng.poisson(100,size=qdim).astype(float)
-    a = rng.poisson(b).astype(float)
-    result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,False)()[1]
-    result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,False)()[1]
-    result_rp10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,True,False)()[1]
-    result_mcd2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,False,False)()[1]
-    result_mcd3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,False,False)()[1]
-    null_scores[i,:] = [result_rp2,result_rp3,result_rp10,result_mcd2,result_mcd3]
-null_scores_df = pd.DataFrame(null_scores,columns=['rp2','rp3','rp10','mcd2','mcd3'])
-null_scores_df.to_csv("null_scores.csv",index_label='i')
+# rng = np.random.default_rng(12345)
+# num_null_experiments = 500
+# null_scores = np.zeros([num_null_experiments,5])
+# for i in range(num_null_experiments):
+#     b = rng.poisson(100,size=qdim).astype(float)
+#     a = rng.poisson(b).astype(float)
+#     result_rp2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,True,False)()[1]
+#     result_rp3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,True,False)()[1]
+#     result_rp10 = solverSWIG_DP.OptimizerSWIG(10,a,b,1,True,False)()[1]
+#     result_mcd2 = solverSWIG_DP.OptimizerSWIG(2,a,b,1,False,False)()[1]
+#     result_mcd3 = solverSWIG_DP.OptimizerSWIG(3,a,b,1,False,False)()[1]
+#     null_scores[i,:] = [result_rp2,result_rp3,result_rp10,result_mcd2,result_mcd3]
+# null_scores_df = pd.DataFrame(null_scores,columns=['rp2','rp3','rp10','mcd2','mcd3'])
+# null_scores_df.to_csv("null_scores.csv",index_label='i')
 ################################################################
 print('FINISHED GENERATING NULL SCORES')
 ################################################################
 # bootstrapped 95th percentile distribution for detection power
-rng = np.random.default_rng(95)
-null_scores_df = pd.read_csv("null_scores.csv")
-null_scores_rp2 = null_scores_df.loc[:,'rp2']
-null_scores_rp3 = null_scores_df.loc[:,'rp3']
-null_scores_rp10 = null_scores_df.loc[:,'rp10']
-null_scores_mcd2 = null_scores_df.loc[:,'mcd2']
-null_scores_mcd3 = null_scores_df.loc[:,'mcd3']
-thresholds_rp2 = bootstrap_95th_percentile(null_scores_rp2)
-thresholds_rp3 = bootstrap_95th_percentile(null_scores_rp3)
-thresholds_rp10 = bootstrap_95th_percentile(null_scores_rp10)
-thresholds_mcd2 = bootstrap_95th_percentile(null_scores_mcd2)
-thresholds_mcd3 = bootstrap_95th_percentile(null_scores_mcd3)
-thresholds_df = pd.DataFrame({'rp2':thresholds_rp2,'rp3':thresholds_rp3,'rp10':thresholds_rp10,'mcd2':thresholds_mcd2,'mcd3':thresholds_mcd3})
-thresholds_df.to_csv("null_thresholds.csv")
+# rng = np.random.default_rng(95)
+# null_scores_df = pd.read_csv("null_scores.csv")
+# null_scores_rp2 = null_scores_df.loc[:,'rp2']
+# null_scores_rp3 = null_scores_df.loc[:,'rp3']
+# null_scores_rp10 = null_scores_df.loc[:,'rp10']
+# null_scores_mcd2 = null_scores_df.loc[:,'mcd2']
+# null_scores_mcd3 = null_scores_df.loc[:,'mcd3']
+# thresholds_rp2 = bootstrap_95th_percentile(null_scores_rp2)
+# thresholds_rp3 = bootstrap_95th_percentile(null_scores_rp3)
+# thresholds_rp10 = bootstrap_95th_percentile(null_scores_rp10)
+# thresholds_mcd2 = bootstrap_95th_percentile(null_scores_mcd2)
+# thresholds_mcd3 = bootstrap_95th_percentile(null_scores_mcd3)
+# thresholds_df = pd.DataFrame({'rp2':thresholds_rp2,'rp3':thresholds_rp3,'rp10':thresholds_rp10,'mcd2':thresholds_mcd2,'mcd3':thresholds_mcd3})
+# thresholds_df.to_csv("null_thresholds.csv")
 ################################################################
 print('FINISHED GENERATING THRESHOLDS')
 ################################################################
@@ -95,7 +95,7 @@ num_experiments_per_q = 500
 cluster_props = np.arange(.01, .2001, step=.01)
 xdim = cluster_props.shape[0] * 3
 ydim = 6
-q1 = 1.05
+q1 = 1.5
 q2s = [1+0.25*(q1-1),1+0.5*(q1-1),1+0.75*(q1-1)]
 
 exp4_scores = np.zeros([num_experiments_per_q*xdim,6])
@@ -116,8 +116,8 @@ for cluster_prop in cluster_props:
     precision_mcd3 = recall_mcd3 = overlap_mcd3 = primary_mcd3 = secondary_mcd3 = distinguish_mcd3 = 0
     for i in range(num_experiments_per_q):
         b = rng.poisson(100,size=qdim).astype(float)
-        cluster1_size = int(cluster_prop*qdim)
-        cluster2_size = int(cluster_prop*qdim)
+        cluster1_size = np.round(cluster_prop*qdim).astype(int)
+        cluster2_size = cluster1_size
         null_size = qdim - cluster1_size - cluster2_size
         q = np.concatenate([np.full(null_size,1.0),
                             np.full(cluster1_size,q2),
@@ -164,12 +164,12 @@ for cluster_prop in cluster_props:
         for k in range(3):
             thepartition_rp = np.array(all_rp3[0][k])
             thepartition_mcd = np.array(all_mcd3[0][k])
-            confusion_rp3[0,k] = len(thepartition_rp[(thepartition_rp < 400)])
-            confusion_rp3[1,k] = len(thepartition_rp[(thepartition_rp >= 400) & (thepartition_rp < 450)])
-            confusion_rp3[2,k] = len(thepartition_rp[(thepartition_rp >= 450)])
-            confusion_mcd3[0,k] = len(thepartition_mcd[(thepartition_mcd < 400)])
-            confusion_mcd3[1,k] = len(thepartition_mcd[(thepartition_mcd >= 400) & (thepartition_mcd < 450)])
-            confusion_mcd3[2,k] = len(thepartition_mcd[(thepartition_mcd >= 450)])
+            confusion_rp3[0,k] = len(thepartition_rp[(thepartition_rp < null_size)])
+            confusion_rp3[1,k] = len(thepartition_rp[(thepartition_rp >= null_size) & (thepartition_rp < (null_size + cluster1_size))])
+            confusion_rp3[2,k] = len(thepartition_rp[(thepartition_rp >= (null_size + cluster1_size))])
+            confusion_mcd3[0,k] = len(thepartition_mcd[(thepartition_mcd < null_size)])
+            confusion_mcd3[1,k] = len(thepartition_mcd[(thepartition_mcd >= null_size) & (thepartition_mcd < (null_size + cluster1_size))])
+            confusion_mcd3[2,k] = len(thepartition_mcd[(thepartition_mcd >= (null_size + cluster1_size))])
         theprecision,therecall,theoverlap,theprimary,thesecondary,thedistinguish = overlap_coeff(confusion_rp3)
         precision_rp3 += theprecision
         recall_rp3 += therecall
@@ -188,7 +188,7 @@ for cluster_prop in cluster_props:
         exp4_scores[theindex,:] = [cluster_prop,q2,score_rp2,score_rp3,score_mcd2,score_mcd3]
         theindex += 1
         
-    print('(cluster_prop,q2) = ({}, {}) finished'.format(q1, q2))
+    print('(cluster_prop,q2) = ({}, {}) finished'.format(cluster_prop, q2))
 
     exp4_precision[j,:] = [cluster_prop,q2,precision_rp2/num_experiments_per_q,precision_rp3/num_experiments_per_q,precision_mcd2/num_experiments_per_q,precision_mcd3/num_experiments_per_q]
     exp4_recall[j,:] = [cluster_prop,q2,recall_rp2/num_experiments_per_q,recall_rp3/num_experiments_per_q,recall_mcd2/num_experiments_per_q,recall_mcd3/num_experiments_per_q]
