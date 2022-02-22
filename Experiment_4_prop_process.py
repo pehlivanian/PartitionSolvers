@@ -8,13 +8,14 @@ labelMap = {'rp2': 'KULL',
             'mcd3': 'MCD'
             }
 stats = ['detection_power','precision','recall','overlap','primary','secondary','distinguish']
+stats_for_report = ['detection_power', 'primary', 'secondary', 'distinguish']
 titleMap = dict(zip(stats, ('Detection Power', 'Precision', 'Recall', 'Overlap', 'Primary cluster detection',
                      'Secondary cluster detection', 'Cluster differentiation')))
 ylabelMap = dict(zip(stats, ('detection power', 'accuracy', 'accuracy', 'accuracy', 'accuracy',
                              'accuracy', 'accuracy')))
 columns = ('rp2', 'rp3', 'mcd2', 'mcd3')
 
-for filepart in stats:
+for filepart in stats_for_report:
     df = pd.read_csv('exp4b_'+filepart+'.csv')
     df_low = df[df.index % 3 == 0].round(decimals=4)
     df_med = df[df.index % 3 == 1].round(decimals=4)

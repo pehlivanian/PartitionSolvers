@@ -37,12 +37,19 @@ byT = args.byT
 BY_N = True
 BY_T = True
 FIT_POWER_CURVE = True
+POWER_LAW_WITH_CONSTANT = True
 
 def plot_single(beta, xlabel, destPath):
-    plot.plot(xaxis, yfitaxis, label='fit: power: {:2.4f}'.format(o.beta[2]))
+    if (POWER_LAW_WITH_CONSTANT):
+        plot.plot(xaxis, yfitaxis, label='fit: power: {:2.4f}'.format(o.beta[2]))
+    else:
+        plot.plot(xaxis, yfitaxis, label='fit: power: {:2.4f}'.format(o.beta[1]))
     plot.xlabel(xlabel)
     plot.ylabel('CPU time (seconds)')
-    plot.title('Power law fit: ({:2.4e}) + ({:2.4e})x^({:2.4f})'.format(*o.beta.tolist()))
+    if (POWER_LAW_WITH_CONSTANT):
+        plot.title('Power law fit: ({:2.4e}) + ({:2.4e})x^({:2.4f})'.format(*o.beta.tolist()))
+    else:
+        plot.title('Power law fit: (({:2.4e})x^({:2.4f})'.format(*o.beta.tolist()))
     plot.grid('on')
     plot.legend()
     plot.pause(1e-3)
@@ -122,20 +129,31 @@ if (FIT_POWER_CURVE):
             xlabel = 'N ~ Size of ground set'            
             destPath = 'Runtimes_with_power_fit_by_n.pdf'
         xaxis = df.index.to_list()
+        
         # average across all cases...???
         yaxis = [y/1000/1000 for y in df.mean(axis=1).values]
         plot.plot(xaxis, yaxis, label='emprical avg runtime')
-        try:
-            popt,pcov = curve_fit(power_law_const, xaxis, yaxis)
-        except Exception as e:
-            popt = [0.0, 0.0, 1.0]
-        func = odr.Model(power_law_const_ODR)
+        if (POWER_LAW_WITH_CONSTANT):
+            try:
+                popt,pcov = curve_fit(power_law_const, xaxis, yaxis)
+            except Exception as e:
+                popt = [0.0, 0.0, 1.0]
+            func = odr.Model(power_law_const_ODR)
+        else:
+            try:
+                popt,pcov = curve_fit(power_law, xaxis, yaxis)
+            except Exception as e:
+                popt = [0.0, 0.0, 1.0]
+            func = odr.Model(power_law_ODR)
         odrdata = odr.Data(xaxis,yaxis)
         odrmodel = odr.ODR(odrdata,func,beta0=popt,maxit=500,ifixx=[0])
         try:
             o = odrmodel.run()
         except Exception as e:
             print('Exception in ODR fit')
-        yfitaxis = [power_law_const_ODR(o.beta.tolist(), x) for x in xaxis]
+        if (POWER_LAW_WITH_CONSTANT):
+            yfitaxis = [power_law_const_ODR(o.beta.tolist(), x) for x in xaxis]
+        else:
+            yfitaxis = [power_law_ODR(o.beta.tolist(), x) for x in xaxis]
         plot_single(o.beta, xlabel, destPath)
 

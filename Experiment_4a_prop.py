@@ -44,7 +44,8 @@ def bootstrap_95th_percentile(null_scores):
   thresholds = np.sort(thresholds)
   return thresholds
 
-rng = np.random.default_rng(9500)
+SEED = 0xC0FFEE
+rng = np.random.default_rng(SEED)
 
 a = proto.FArray()                  # wrapper for C++ float array type
 b = proto.FArray()                  # wrapper for C++ float array type
@@ -91,10 +92,11 @@ print('FINISHED GENERATING THRESHOLDS')
 # experiment 4: multiple cluster detection, two clusters
 #
 num_experiments_per_q = 500
-cluster_props = np.arange(.01, .4001, step=.01)
+cluster_props = np.arange(.01, .2001, step=.01)
 xdim = cluster_props.shape[0] * 3
 ydim = 6
-q1 = 1.15
+q1 = 1.05
+q2s = [1+0.25*(q1-1),1+0.5*(q1-1),1+0.75*(q1-1)]
 
 exp4_scores = np.zeros([num_experiments_per_q*xdim,6])
 exp4_precision = np.zeros([xdim,ydim])
@@ -107,7 +109,7 @@ j = 0
 theindex = 0
 
 for cluster_prop in cluster_props:
-  for q2 in [1+0.25*(q1-1),1+0.5*(q1-1),1+0.75*(q1-1)]:
+  for q2 in q2s:
     precision_rp2 = recall_rp2 = overlap_rp2 = primary_rp2 = secondary_rp2 = distinguish_rp2 = 0
     precision_rp3 = recall_rp3 = overlap_rp3 = primary_rp3 = secondary_rp3 = distinguish_rp3 = 0
     precision_mcd2 = recall_mcd2 = overlap_mcd2 = primary_mcd2 = secondary_mcd2 = distinguish_mcd2 = 0
@@ -116,7 +118,7 @@ for cluster_prop in cluster_props:
         b = rng.poisson(100,size=qdim).astype(float)
         cluster1_size = int(cluster_prop*qdim)
         cluster2_size = int(cluster_prop*qdim)
-        null_size = qdim-cluster1_size-cluster2_size
+        null_size = qdim - cluster1_size - cluster2_size
         q = np.concatenate([np.full(null_size,1.0),
                             np.full(cluster1_size,q2),
                             np.full(cluster2_size,q1)])
@@ -185,8 +187,8 @@ for cluster_prop in cluster_props:
 
         exp4_scores[theindex,:] = [cluster_prop,q2,score_rp2,score_rp3,score_mcd2,score_mcd3]
         theindex += 1
-
-        print('(cluster_prop,q2) = ({},{}) {} out of {} finished'.format(q1, q2, i, num_experiments_per_q))
+        
+    print('(cluster_prop,q2) = ({}, {}) finished'.format(q1, q2))
 
     exp4_precision[j,:] = [cluster_prop,q2,precision_rp2/num_experiments_per_q,precision_rp3/num_experiments_per_q,precision_mcd2/num_experiments_per_q,precision_mcd3/num_experiments_per_q]
     exp4_recall[j,:] = [cluster_prop,q2,recall_rp2/num_experiments_per_q,recall_rp3/num_experiments_per_q,recall_mcd2/num_experiments_per_q,recall_mcd3/num_experiments_per_q]
@@ -222,7 +224,7 @@ methods = ['rp2','rp3','mcd2','mcd3']
 detection_power = np.zeros([xdim,2+len(methods)])
 therow = 0
 for cluster_prop in cluster_props:
-  for q2 in [1+0.25*(q1-1),1+0.5*(q1-1),1+0.75*(q1-1)]:
+  for q2 in q2s:
     detection_power[therow,0] = cluster_prop
     detection_power[therow,1] = q2
     thecol = 2
