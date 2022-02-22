@@ -92,7 +92,7 @@ print('FINISHED GENERATING THRESHOLDS')
 # experiment 4: multiple cluster detection, two clusters
 #
 num_experiments_per_q = 500
-cluster_props = np.arange(.01, .2001, step=.01)
+cluster_props = np.arange(.01, .4001, step=.01)
 xdim = cluster_props.shape[0] * 3
 ydim = 6
 q1 = 1.5
