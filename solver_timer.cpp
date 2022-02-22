@@ -26,7 +26,7 @@ auto main(int argc, char **argv) -> int {
   // optimized. Optimized should always be turned on; it uses a lookup table of order n^2 to
   // gain much runtime efficiency.
   //
-  auto dist = objective_fn::Gaussian;
+  auto dist = objective_fn::Poisson;
   bool risk_partitioning = true;
   bool optimized = true;
   //

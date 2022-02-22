@@ -65,12 +65,12 @@ class EpsilonTask(object):
         resid = self.num_deviates - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
-        levels = np.linspace(5. - 5.*epsilon,
-                             5. + 5.*epsilon,
-                             self.num_true_clusters)
-        # levels = np.linspace(1. - epsilon,
-        #                      2. + epsilon,
+        # levels = np.linspace(5. - 5.*epsilon,
+        #                      5. + 5.*epsilon,
         #                      self.num_true_clusters)
+        levels = np.linspace(1. - 1.*epsilon,
+                             1. + 1.*epsilon,
+                             self.num_true_clusters)
         # levels = np.linspace(max(0.,1-float(self.num_true_clusters/2)*epsilon),
         #                      min(2., 1+float(self.num_true_clusters/2)*epsilon),
         #                      self.num_true_clusters)
@@ -244,16 +244,18 @@ class Plotter(object):
 
         plot.plot(xaxis, yaxis, Plotter.colorMap[1])
 
-        # Take care of smoothed series outside of loop
         plot.plot(xaxis, yaxis_smoothed, Plotter.colorMap[0], label='smoothed predicted', linewidth=3)
-        plot.plot(xaxis, [x-y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
-        plot.plot(xaxis, [x+y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
+        # Remove for plots of raw std error bars
+        # plot.plot(xaxis, [x-y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
+        # plot.plot(xaxis, [x+y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
         plot.plot(xaxis, [x-y for x,y in zip(yaxis_smoothed,std_error_smoothed)], Plotter.colorMap[0], linewidth=1)
         plot.plot(xaxis, [x+y for x,y in zip(yaxis_smoothed,std_error_smoothed)], Plotter.colorMap[0], linewidth=1)
 
         plot.plot(xaxis, [num_true_clusters]*len(yaxis), '-.', linewidth=2, label='theoretical')
         plot.title('Cluster detection by signal strength ({} clusters)'.format(num_true_clusters))
         plot.legend()
+        plot.xlabel('signal strength (epsilon)')
+        plot.ylabel('number of clusters')
         plot.grid(True)
         plot.pause(1e-2)
         suff = 'rp' if risk_partitioning_objective else 'mc'
@@ -269,9 +271,9 @@ if __name__ == '__main__':
     epsilon_min = 0.
     epsilon_max = 1.00
     epsilon_delta = .01
-    risk_partitioning_objective = False
+    risk_partitioning_objective = True
 
-    for num_true_clusters in (2,3,5,7,10):
+    for num_true_clusters in (2,3,5,7):
         b = Baselines(num_true_clusters,
                       max_num_clusters,
                       num_trials,

@@ -10,6 +10,27 @@ import proto
 SEED = 1869
 rng = np.random.RandomState(SEED)
 
+def compute_prob_sup(v1,v2):
+   prob_sup = 0.
+   thelength = len(v1)
+   for j in range(thelength):
+     for i in range(j+1,len(v2)):
+       prob_sup += v1[i]*v2[j]
+   prob_sup /= np.sum(v1)*np.sum(v2)
+   return prob_sup
+
+def overlap_coeff(m):
+  true_pos = np.sum(m[1:,1:])
+  false_neg = np.sum(m[1:,0])
+  false_pos = np.sum(m[0,1:])
+  precision = true_pos / (true_pos+false_pos)
+  recall = true_pos / (true_pos+false_neg)
+  overlap = true_pos / (true_pos+false_pos+false_neg)
+  prob_sup_primary = compute_prob_sup(m[2,:],m[0,:])
+  prob_sup_secondary = compute_prob_sup(m[1,:],m[0,:])
+  prob_sup_distinguish = compute_prob_sup(m[2,:],m[1,:])
+  return precision,recall,overlap,prob_sup_primary,prob_sup_secondary,prob_sup_distinguish
+
 def ranking_quality(m):
   rq = 0
   num_rows = m.shape[0]
@@ -88,12 +109,11 @@ class QATask(object):
       for i in range(self.num_experiments_per_epsilon):
         b = rng.poisson(self.poisson_intensity,size=self.deviate_size).astype(float)
         # Branch on number of true clusters
+        # RISK PARTITIONING CASE        
         split = int(self.deviate_size/self.num_true_clusters)
         resid = self.deviate_size - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
-        # XXX
-        # Fine for risk partitioning, not for multiple clustering case
         levels = np.linspace(theepsilon/self.num_true_clusters,
                              2-theepsilon/self.num_true_clusters,
                              self.num_true_clusters)
@@ -259,7 +279,7 @@ if __name__ == '__main__':
   POISSON_INTENSITY = 100             # 100  in paper
   DEVIATE_SIZE = 1000                 # 5000 in paper
   NUM_NULL_EXPERIMENTS = 1000         # 1000 in paper
-  NUM_THRESHOLD_CALCULATIONS = 1000    # 1000 in paper
+  NUM_THRESHOLD_CALCULATIONS = 1000   # 1000 in paper
   NUM_EXPERIMENTS_PER_EPSILON = 1000  # 1000 in paper
   NUM_EPSILON_VALUES = 11             # 11 in paper
   CLUSTER_LIST = list(range(2,11))    # (2,3,5,10) in paper
