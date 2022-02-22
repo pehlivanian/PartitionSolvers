@@ -94,7 +94,7 @@ num_experiments_per_q = 500
 cluster_props = np.arange(.01, .4001, step=.01)
 xdim = cluster_props.shape[0] * 3
 ydim = 6
-q1 = 1.05
+q1 = 1.15
 
 exp4_scores = np.zeros([num_experiments_per_q*xdim,6])
 exp4_precision = np.zeros([xdim,ydim])

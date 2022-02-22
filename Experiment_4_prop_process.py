@@ -31,9 +31,9 @@ for filepart in stats:
         yaxis = df_med[column].values
         plot.plot(xaxis,yaxis, label=labelMap[column])
     plot.title('{}'.format(titleMap[filepart]))
-    plot.xlabel('signal proportion')
+    plot.xlabel('cluster proportion')
     plot.ylabel(ylabelMap[filepart])
-    plot.xticks(np.arange(0.01, 0.251, step=0.01), rotation=90)
+    plot.xticks(xaxis, rotation=90)
         
     plot.legend()
     plot.grid(True)
