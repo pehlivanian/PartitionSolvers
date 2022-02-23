@@ -14,6 +14,7 @@ from matplotlib.collections import PatchCollection
 import solverSWIG_DP
 import proto
 
+MAXIMAL_T = 100
 
 dict_to_add = {'36005002000':'36005002400', 
                '36005003500':'36005003700',
@@ -76,7 +77,7 @@ def get_cancer_data(cancer_type):
     ''' Get raw data, filter by cancer type
     '''
        
-    data = pd.read_csv("./NYS_data/NYC Cancer Rates 2013-2017.csv")
+    data = pd.read_csv("../../NYS_data/NYC Cancer Rates 2013-2017.csv")
     
     g, h, geoid = list(), list(), list()
     for i,r in data.iterrows():
@@ -107,6 +108,17 @@ def find_partitions(num_partitions, g, h, distribution, risk_partitioning_object
                                               True)()
     return all_results
 
+def find_optimal_t(max_num_partitions, g, h, distribution, risk_partitioning_objective):
+    optimal_t = solverSWIG_DP.OptimizerSWIG(max_num_partitions,
+                                            g,
+                                            h,
+                                            distribution,
+                                            risk_partitioning_objective,
+                                            True,
+                                            sweep_best=True)()
+    return optimal_t
+    
+
 def label_clusters(results, geoid):
     ''' associate tract with cluster number
     '''
@@ -131,7 +143,7 @@ def visualization(raw_result, result, num_partitions, cancer_type='breast', risk
     ''' render visuals
     '''
     nyc_geoid=list(result.geoid.unique())
-    sf = shapefile.Reader("./NYS_data/nyct2010_21b/nyct2010.shp")
+    sf = shapefile.Reader("../../NYS_data/nyct2010_21b/nyct2010.shp")
     recs    = sf.records()
     test=pd.DataFrame(recs)
     test.loc[:,'county']=0
@@ -228,11 +240,15 @@ if __name__ == '__main__':
     # get raw cancer data by type
     g, h, geoid = get_cancer_data(args.type)
 
+    # find optimal t
+    optimal_t = find_optimal_t(MAXIMAL_T, g, h, args.dist, args.obj)
+    print('OPTIMAL M: {} t: {}'.format(MAXIMAL_T, optimal_t))
+
     # optimize
-    parts = find_partitions(args.T, g, h, args.dist, args.obj)
+    parts = find_partitions(optimal_t, g, h, args.dist, args.obj)
 
     # label things
     result = label_clusters(parts, geoid)
 
     # render graph
-    visualization(parts, result, args.T, cancer_type=args.type, risk_partitioning_objective=args.obj, colormap=args.color)
+    visualization(parts, result, optimal_t, cancer_type=args.type, risk_partitioning_objective=args.obj, colormap=args.color)

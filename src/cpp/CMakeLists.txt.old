@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.6)
 
+###########################
+# BEGIN COMMON DIRECTIVES #
+###########################
 project(proto)
 
 cmake_policy(SET CMP0078 OLD)
@@ -11,11 +14,13 @@ if (SWIG_BINDINGS)
 endif()
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs REQUIRED)
+if (GTEST)
+  find_package(GTest REQUIRED)
+endif()
 
 include(UseSWIG)
 include(GNUInstallDirs)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Finding eigen3 path flaky in some envs; use abs path
 include_directories(/usr/local/include/eigen3)
 
@@ -31,7 +36,16 @@ target_link_libraries(DP_solver_demo DP LTSS pthread)
 add_executable(solver_timer solver_timer.cpp)
 target_link_libraries(solver_timer DP timer)
 
+# C++ executable gtest_all
+if (GTEST)
+  add_executable(gtest_all gtest_all.cpp)
+  target_link_libraries(gtest_all LTSS DP ${GTEST_LIBRARIES} pthread)
+endif()
+
 set(CMAKE_SWIG_FLAGS "")
+if (GTEST)
+  include_directories(${GTEST_INCLUDE_DIRS})
+endif()
 
 if (SWIG_BINDINGS)
   set_source_files_properties(proto.i PROPERTIES CPLUSPLUS ON)

@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "score.hpp"
+#include "LTSS.hpp"
 #include "DP.hpp"
 
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
