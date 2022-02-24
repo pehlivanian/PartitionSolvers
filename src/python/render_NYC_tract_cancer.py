@@ -14,7 +14,7 @@ from matplotlib.collections import PatchCollection
 import solverSWIG_DP
 import proto
 
-MAXIMAL_T = 100
+DATAFRAME_OUTPUT = True
 
 dict_to_add = {'36005002000':'36005002400', 
                '36005003500':'36005003700',
@@ -96,6 +96,9 @@ def get_cancer_data(cancer_type):
     h_ = np.asarray(h)
     geoid_ = np.asarray(geoid)
     return g_,h_,geoid_
+
+def algo_type_str(objective):
+    return 'RISKPART' if objective else 'MULT'    
 
 def find_partitions(num_partitions, g, h, distribution, risk_partitioning_objective):
     ''' Optimizer
@@ -207,7 +210,7 @@ def visualization(raw_result, result, num_partitions, cancer_type='breast', risk
         handles.append(locals()["patch_{}".format(t)])
     plt.xticks([], [])
     plt.yticks([],[])
-    algo_type = 'risk_part' if risk_partitioning_objective else 'MULT'    
+    algo_type = algo_type_str(risk_partitioning_objective)
     plt.title('NYC {} cancer incidence 2013-2017 {} t = {} partitions'.format(cancer_type, algo_type, num_partitions))
     plt.legend(handles=handles,loc='upper left',prop={'size':8})
     plt.pause(1e-3)
@@ -217,13 +220,13 @@ def visualization(raw_result, result, num_partitions, cancer_type='breast', risk
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate NYC census tract figures')
     parser.add_argument('T', metavar='T', type=int,
-                        help='number of subsets')
+                        help='max number of subsets; optimal s <= T will be found')
     parser.add_argument('type', metavar='Cancer type', type=str,
                         help='''type of cancer, one of ("breast", "prostate", "lung")''')
     parser.add_argument('-dist', metavar='Distribution', type=int, default=1,
                         help='distribution specification, 1 ~ Poisson, 2 ~ Gaussian DEFAULT: 1')
-    parser.add_argument('-obj', metavar='Objective', type=bool, default=True,
-                        help='true ~ risk partitioning objective, false ~ multiple cluster detection DEFAULT: True')
+    parser.add_argument('-obj', metavar='Objective', type=bool, default=False,
+                        help='true ~ risk partitioning objective, false ~ multiple cluster detection DEFAULT: False')
     parser.add_argument('-color', metavar='Colormap', type=str, default='Blues',
                         help='''colormap specification for visualization, choices are not limited to
                         ('Blues',
@@ -241,8 +244,8 @@ if __name__ == '__main__':
     g, h, geoid = get_cancer_data(args.type)
 
     # find optimal t
-    optimal_t = find_optimal_t(MAXIMAL_T, g, h, args.dist, args.obj)
-    print('OPTIMAL M: {} t: {}'.format(MAXIMAL_T, optimal_t))
+    optimal_t = find_optimal_t(args.T, g, h, args.dist, args.obj)
+    print('OPTIMAL t <= {}: t = {}'.format(args.T, optimal_t))
 
     # optimize
     parts = find_partitions(optimal_t, g, h, args.dist, args.obj)
@@ -252,3 +255,17 @@ if __name__ == '__main__':
 
     # render graph
     visualization(parts, result, optimal_t, cancer_type=args.type, risk_partitioning_objective=args.obj, colormap=args.color)
+
+    if (DATAFRAME_OUTPUT):
+        df = pd.DataFrame(data=np.concatenate([g.reshape(-1,1), h.reshape(-1,1), -1*np.zeros(g.reshape(-1,1).shape)], axis=1),
+                          columns=['incidence', 'baseline', 'part'])
+        df = df.astype({'part': 'int32'})
+        for ind,subset in enumerate(parts[0]):
+            for x in subset:
+                df.loc[x,'part'] = ind
+                
+        assert df['part'].min() >= 0
+            
+        df.to_csv('NYC_{}_{}_{}_{}.csv'.format(args.type, optimal_t, algo_type_str(args.obj), args.color))
+
+

@@ -89,7 +89,7 @@ print('SCORE: {}'.format(single_result_r[1]))
 # t selection in C++                                                  #
 # comprehensive partition, score output for t selection in Python     #
 #######################################################################
-SEED = 0xDEADBEEF
+SEED = 0xC0FFEE
 rng = np.random.RandomState(SEED)
 
 class Distribution:
@@ -124,16 +124,6 @@ print('================================\n')
 for num_trial in range(NUM_TRIALS):
     num_true_clusters = rng.choice(range(2,max_num_partitions))
 
-    # split = int(n/num_true_clusters)
-    # resid = n - (split * num_true_clusters)
-    # resids = ([1] * int(resid)) + ([0] * (num_true_clusters - int(resid)))
-    # splits = [split + r for r in resids]
-    # levels = np.linspace(epsilon/num_true_clusters,
-    #                      2-epsilon/num_true_clusters,
-    #                      num_true_clusters)
-    # q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
-
-    # Probably a better cluster generation method
     split = int(n/num_true_clusters)
     resid = n - (split * num_true_clusters)
     resids = ([1] * int(resid)) + ([0] * (num_true_clusters - int(resid)))
