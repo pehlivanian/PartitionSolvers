@@ -66,15 +66,15 @@ class OptimizerSWIG(object):
                                             self.gamma,
                                             int(self.reg_power))
         elif self.sweep_best:
-            return proto.compute_optimal_num_clusters_OLS(self.N,
-                                                          self.num_partitions,
-                                                          self.g_c,
-                                                          self.h_c,
-                                                          self.objective_fn,
-                                                          self.risk_partitioning_objective,
-                                                          self.use_rational_optimization,
-                                                          self.gamma,
-                                                          int(self.reg_power))
+            return proto.compute_optimal_num_clusters_OLS_all(self.N,
+                                                              self.num_partitions,
+                                                              self.g_c,
+                                                              self.h_c,
+                                                              self.objective_fn,
+                                                              self.risk_partitioning_objective,
+                                                              self.use_rational_optimization,
+                                                              self.gamma,
+                                                              int(self.reg_power))
         elif self.sweep_all:
             return proto.optimize_all__DP(self.N,
                                           self.num_partitions,

@@ -14,7 +14,7 @@
 #include <exception>
 
 
-std::pair<int, std::vector<std::vector<int> > > compute_optimal_num_clusters_OLS_all(int n,
+std::pair<std::vector<std::vector<int> >, int> compute_optimal_num_clusters_OLS_all(int n,
 										   int T,
 										   std::vector<float> a,
 										   std::vector<float> b,

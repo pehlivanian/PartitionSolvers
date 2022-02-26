@@ -89,7 +89,7 @@ print('SCORE: {}'.format(single_result_r[1]))
 # t selection in C++                                                  #
 # comprehensive partition, score output for t selection in Python     #
 #######################################################################
-SEED = 0xC0FFEE
+SEED = 0xC0FFEA
 rng = np.random.RandomState(SEED)
 
 class Distribution:
@@ -165,7 +165,7 @@ for num_trial in range(NUM_TRIALS):
     
     all_results_r = all_results_sweep()
     best_result_OLS_sweep_r = best_result_OLS_sweep()
-    
+
     df = pd.DataFrame({'rp'+str(len(r[0])):[r[1]] for r in all_results_r})
     df = df.drop(columns=['rp0'])
     ddf = df.diff(axis=1)
@@ -174,7 +174,7 @@ for num_trial in range(NUM_TRIALS):
 
     print("NATIVE C++ PYTHON OPTIMAL OLS T (RISK PART) VS THEORETICAL T: (n = {}, max t = {})".format(n, max_num_partitions))
     print("=============")
-    print('Optimal t: {} Theoretical t: {}\n'.format(best_result_OLS_sweep_r, num_true_clusters))    
+    print('Optimal t: {} Theoretical t: {}\n'.format(best_result_OLS_sweep_r[1], num_true_clusters))    
     print("OFFLINE PYTHON OPTIMAL OLS T (RISK PART) VS THEORETICAL T: (n = {}, max t = {})".format(n, max_num_partitions))
     print("=============")
     print('Optimal t: {} Theoretical t: {}\n'.format(fit(ddf.iloc[0,:].values), num_true_clusters))

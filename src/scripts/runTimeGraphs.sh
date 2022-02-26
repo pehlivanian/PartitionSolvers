@@ -9,6 +9,8 @@ fn=times_${n}_${T}_${NStride}_${TStrade}.dat
 EXEC=../../build/examples/solver_timer
 PLOTTER=../python/plot_times.py
 
+[ ! -f "$fn" ] && rm -f ${fn}
+
 [ ! -f "$EXEC" ] && echo "$EXEC does not exist; just find it and set appropriately."
 [ ! -f "PLOTTER" ] && echo "$PLOTTER does not exist; just find it and set appropriately."
 

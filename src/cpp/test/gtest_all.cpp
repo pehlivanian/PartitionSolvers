@@ -473,10 +473,73 @@ TEST_P(DPSolverTestFixture, TestSweepResultsMatchSingleTResults) {
 
 }
 
-TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
+TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
   int n = 10000;
   int T = 10;
   int NUM_TRIALS = 1;
+  float EPSILON = 0.5;
+  float MU = 100.;
+  float SIGMA = 1.;
+  float POISSON_INTENSITY = 1000.;
+
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_int_distribution<int> genNumMixed(2, 5);
+  std::uniform_real_distribution<float> distb_uniform(1., 10.);
+  std::poisson_distribution<int> distb_poisson(POISSON_INTENSITY);
+  std::normal_distribution<float> distb_normal(MU, SIGMA);
+  auto genb_poisson = [&distb_poisson, 
+		       &mersenne_engine](){ 
+    return static_cast<float>(distb_poisson(mersenne_engine)); 
+  };
+  auto genb_normal = [&distb_normal, &mersenne_engine]() {
+    return distb_normal(mersenne_engine);
+  };
+    
+  int numClusters, numMixed;
+  std::vector<std::vector<int> > partition;
+
+  objective_fn objective = GetParam();
+  
+  std::vector<float> a, b;
+  a.resize(n); b.resize(n);
+
+    for (int j=0; j<NUM_TRIALS; ++j) {
+
+      numMixed = genNumMixed(mersenne_engine);
+
+      switch (objective) {
+      case objective_fn::Gaussian :
+	std::generate(b.begin(), b.end(), genb_normal);
+	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+      case objective_fn::Poisson :
+	std::generate(b.begin(), b.end(), genb_poisson);
+	a = mixture_poisson_dist(n, b, numMixed, EPSILON);
+      case objective_fn::RationalScore :
+	std::generate(b.begin(), b.end(), genb_normal);
+	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+      }
+      
+      auto dp = DPSolver(n, T, a, b,
+			 objective,
+			 true,
+			 true,
+			 0.,
+			 1.,
+			 false,
+			 true);
+      
+      numClusters = dp.get_optimal_num_clusters_OLS_extern();
+      partition = dp.get_optimal_subsets_extern();
+
+      ASSERT_EQ(numClusters,partition.size());
+    }
+}
+
+TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
+  int n = 10000;
+  int T = 10;
+  int NUM_TRIALS = 5;
   int NUM_EPOCHS = 1;
   float EPSILON = 0.5;
   float MU = 100.;
@@ -581,20 +644,24 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
       m21 = std::min(m1, m2);
       m22 = std::max(m1, m2);
       
-     
-      auto context = PoissonContext(a,
-				    b,
-				    n,
-				    true,
-				    false);
+      std::unique_ptr<ParametricContext> context;
+	
+      switch (objective) {
+      case objective_fn::Gaussian :
+	context = std::make_unique<GaussianContext>(a, b, n, true, false);
+      case objective_fn::Poisson :
+	context = std::make_unique<PoissonContext>(a, b, n, true, false);
+      case objective_fn::RationalScore :
+	context = std::make_unique<RationalScoreContext>(a, b, n, true, false);
+      }
 
       float rand_score, dp_score;
-      rand_score = context.compute_score_riskpart(0, m21) + 
-	context.compute_score_riskpart(m21, m22) + 
-	context.compute_score_riskpart(m22, n);
-      dp_score = context.compute_score_riskpart(dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
-	context.compute_score_riskpart(dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
-	context.compute_score_riskpart(dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
+      rand_score = context->compute_score_riskpart(0, m21) + 
+	context->compute_score_riskpart(m21, m22) + 
+	context->compute_score_riskpart(m22, n);
+      dp_score = context->compute_score_riskpart(dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
+	context->compute_score_riskpart(dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
+	context->compute_score_riskpart(dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
 
       if ((dp_score - rand_score) > std::numeric_limits<float>::epsilon()) {
 	ASSERT_LE(rand_score, dp_score);
