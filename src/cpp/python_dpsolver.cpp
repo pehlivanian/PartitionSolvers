@@ -24,6 +24,35 @@ struct distributionException : public std::exception {
   };
 };
 
+std::pair<int, std::vector<std::vector<int> > > compute_optimal_num_clusters_OLS_all(int n,
+										   int T,
+										   std::vector<float> a,
+										   std::vector<float> b,
+										   int parametric_dist,
+										   bool risk_partitioning_objective,
+										   bool use_rational_optimization,
+										   float gamma,
+										   int reg_power) {
+
+  auto dp = DPSolver(n, 
+		     T, 
+		     a, 
+		     b, 
+		     static_cast<objective_fn>(parametric_dist), 
+		     risk_partitioning_objective, 
+		     use_rational_optimization,
+		     gamma,
+		     reg_power,
+		     false,
+		     true);
+
+  int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
+  std::vector<std::vector<int> > optimal_subset = dp.get_optimal_subsets_extern();
+
+  return std::make_pair(optimal_t, optimal_subset);
+  
+  
+}
 
 int compute_optimal_num_clusters_OLS(int n,
 				     int T,

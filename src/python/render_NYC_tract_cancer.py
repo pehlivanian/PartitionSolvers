@@ -166,7 +166,6 @@ def visualization(raw_result, result, num_partitions, cancer_type='breast', risk
     sorted_qs = [qs[i] for i in sortind]
     sorted_proportions = [proportions[i] for i in sortind]
 
-
     shapes  = sf.shapes()
     Nshp    = len(shapes)
     cns     = []
@@ -255,6 +254,8 @@ if __name__ == '__main__':
 
     # render graph
     visualization(parts, result, optimal_t, cancer_type=args.type, risk_partitioning_objective=args.obj, colormap=args.color)
+
+    print('SCORE: {}'.format(parts[1]))
 
     if (DATAFRAME_OUTPUT):
         df = pd.DataFrame(data=np.concatenate([g.reshape(-1,1), h.reshape(-1,1), -1*np.zeros(g.reshape(-1,1).shape)], axis=1),

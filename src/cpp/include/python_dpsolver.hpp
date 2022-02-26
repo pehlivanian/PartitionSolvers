@@ -14,6 +14,16 @@
 #include <exception>
 
 
+std::pair<int, std::vector<std::vector<int> > > compute_optimal_num_clusters_OLS_all(int n,
+										   int T,
+										   std::vector<float> a,
+										   std::vector<float> b,
+										   int parametric_dist,
+										   bool risk_partitioning_objective,
+										   bool use_rational_optimization,
+										   float gamma=0.,
+										   int reg_power=1.);
+
 int compute_optimal_num_clusters_OLS(int n,
 				     int T,
 				     std::vector<float> a,

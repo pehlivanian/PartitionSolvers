@@ -27,7 +27,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/python)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/python)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
@@ -53,20 +52,28 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 add_subdirectory(src/cpp)
-add_subdirectory(src/cpp/test)
+if (GTEST)
+  add_subdirectory(src/cpp/test)
+endif()
 
 #########################################################
 # To compile swig c++ python bindings from command line #
 #########################################################
-# To generate swig bindings [C++11] - does not like to eigen3 lib
-# $ swig -c++ -python proto.i
-# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
-# $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+# SWIG bindings can be created outside of cmake, for those who just want the python
+# interface and that's it. 
+# 
+# ---> Execute the following from <PROJECT_SOURCE_DIR>/src/cpp
+#
+# To generate swig bindings for [C++11] which do not link to eigen3 lib
+# $ swig -c++ -python -I./include -outdir ../python proto.i
+# $ g++ -std=c++11 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6 -I./include
+# $ g++ -std=c++11 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o ../python/_proto.so -lstdc++
 
-# To generate swig bindings [>=C++14]
-# $ swig -c++ -python proto.i
-# $ g++ -std=c++14 -c -fPIC -O3 -I/usr/local/include/eigen3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
-# $ g++ -std=c++14 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+# To generate swig bindings [>=C++14] with eigen3
+# $ swig -c++ -python -I./include -outdir ../python proto.i
+# $ g++ -std=c++14 -c -fPIC -O3 -I/usr/local/include/eigen3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6 -I./include
+# $ g++ -std=c++14 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o ../python/_proto.so -lstdc++
+# $ rm *.o
 
 
 # Test:

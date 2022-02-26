@@ -211,6 +211,9 @@ DPSolver::optimize() {
 	}
       }
       optimal_num_clusters_OLS_ = bestInd + 1;
+      subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].first;
+      optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].second;
+
 #else
       optimal_num_clusters_OLS_ = -1;
 #endif

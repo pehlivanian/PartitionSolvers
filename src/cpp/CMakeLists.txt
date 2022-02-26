@@ -35,7 +35,7 @@ set(CMAKE_SWIG_FLAGS "")
 
 if (SWIG_BINDINGS)
   set_source_files_properties(proto.i PROPERTIES CPLUSPLUS ON)
-  swig_add_library(proto LANGUAGE python OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR} OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR} SOURCES LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto.i)
+  swig_add_library(proto LANGUAGE python OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../python OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../python SOURCES LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto.i)
   swig_link_libraries(proto ${PYTHON_LIBRARIES})
 endif()
 
