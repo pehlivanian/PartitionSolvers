@@ -92,6 +92,7 @@ $ ./src/scripts/runTimeGraphs.sh 5000 100 10 10
 ```
 $ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DUSE_C++17=ON
 $ cmake --build build -- -j4
+```
 
 Demos, unittests are straightforward. To generate runtime charts:
 
