@@ -96,7 +96,49 @@ $ cmake --build build -- -j4
 
 Aside from the SWIG python binaries, the builds creates the executables:
 ```
-./build/bin
+\u251c\u2500\u2500 build
+\u2502   \u251c\u2500\u2500 CMakeFiles
+\u2502   \u2502   \u251c\u2500\u2500 3.15.2
+\u2502   \u2502   \u2502   \u251c\u2500\u2500 CompilerIdC
+\u2502   \u2502   \u2502   \u2502   \u2514\u2500\u2500 tmp
+\u2502   \u2502   \u2502   \u2514\u2500\u2500 CompilerIdCXX
+\u2502   \u2502   \u2502       \u2514\u2500\u2500 tmp
+\u2502   \u2502   \u2514\u2500\u2500 CMakeTmp
+\u2502   \u251c\u2500\u2500 examples
+\u2502   \u251c\u2500\u2500 src
+\u2502   \u2502   \u2514\u2500\u2500 cpp
+\u2502   \u2502       \u251c\u2500\u2500 CMakeFiles
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 DP.dir
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 DP_solver_demo.dir
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 LTSS.dir
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 LTSS_solver_demo.dir
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 _proto.dir
+\u2502   \u2502       \u2502   \u2502   \u2514\u2500\u2500 __
+\u2502   \u2502       \u2502   \u2502       \u2514\u2500\u2500 python
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 proto_swig_compilation.dir
+\u2502   \u2502       \u2502   \u251c\u2500\u2500 solver_timer.dir
+\u2502   \u2502       \u2502   \u2514\u2500\u2500 timer.dir
+\u2502   \u2502       \u2514\u2500\u2500 test
+\u2502   \u2502           \u2514\u2500\u2500 CMakeFiles
+\u2502   \u2502               \u2514\u2500\u2500 gtest_all.dir
+\u2502   \u2514\u2500\u2500 tests
+\u251c\u2500\u2500 catboost_info
+\u2502   \u251c\u2500\u2500 learn
+\u2502   \u2514\u2500\u2500 tmp
+\u251c\u2500\u2500 figures
+\u251c\u2500\u2500 figures_for_presentation
+\u251c\u2500\u2500 NYBCData
+\u251c\u2500\u2500 NYS_data
+\u2502   \u2514\u2500\u2500 nyct2010_21b
+\u251c\u2500\u2500 presentation
+\u251c\u2500\u2500 __pycache__
+\u2514\u2500\u2500 src
+    \u251c\u2500\u2500 cpp
+    \u2502   \u251c\u2500\u2500 include
+    \u2502   \u2514\u2500\u2500 test
+    \u251c\u2500\u2500 python
+    \u2514\u2500\u2500 scripts
+
 |--DP_solver_demo   // Partition solver demo
 |--LTSS_solver_demo // Single subset (LTSS) solver demo
 |--solver_timer     // Run timings
@@ -108,63 +150,7 @@ Demos, unittests are straightforward. To generate runtime charts:
 
 Google test suite for C++ engine run via
 ```
-$ ./build/bin/gtest_all
-
-[==========] Running 20 tests from 3 test suites.
-[----------] Global test environment set-up.
-[----------] 1 test from DPSolverTest
-[ RUN      ] DPSolverTest.TestBaselines
-[       OK ] DPSolverTest.TestBaselines (0 ms)
-[----------] 1 test from DPSolverTest (0 ms total)
-
-[----------] 15 tests from DPSolverTests/DPSolverTestFixture
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/0
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/0 (99 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/1
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/1 (103 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/2
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimizationFlag/2 (98 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/0
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/0 (1 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/1
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/1 (1 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/2
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOrderedProperty/2 (1 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/0
-[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/0 (151 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/1
-[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/1 (162 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/2
-[       OK ] DPSolverTests/DPSolverTestFixture.TestSweepResultsMatchSingleTResults/2 (148 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/0
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/0 (1219 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/1
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/1 (1201 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/2
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalNumberofClustersMatchesMixture/2 (983 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/0
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/0 (159 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/1
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/1 (137 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/2
-[       OK ] DPSolverTests/DPSolverTestFixture.TestOptimalityWithRandomPartitions/2 (138 ms)
-[----------] 15 tests from DPSolverTests/DPSolverTestFixture (4601 ms total)
-
-[----------] 4 tests from DPSolverTests/DPSolverTestFixtureExponentialFamily
-[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/0
-[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/0 (79 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/1
-[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestHighestScoringSetOf2TieOutAllDists/1 (66 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/0
-[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/0 (8 ms)
-[ RUN      ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/1
-[       OK ] DPSolverTests/DPSolverTestFixtureExponentialFamily.TestBestSweepResultIsAlwaysMostGranularPartition/1 (2 ms)
-[----------] 4 tests from DPSolverTests/DPSolverTestFixtureExponentialFamily (155 ms total)
-
-[----------] Global test environment tear-down
-[==========] 20 tests from 3 test suites ran. (4756 ms total)
-[  PASSED  ] 20 tests.
-
+$ ./build/tests/gtest_all
 ```
 
 
