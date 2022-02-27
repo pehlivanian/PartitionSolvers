@@ -94,7 +94,7 @@ $ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DU
 $ cmake --build build -- -j4
 ```
 
-Demos, unittests are straightforward. To generate runtime charts:
+Demos, unittests are straightforward.
 
 Google test suite for C++ engine run via
 ```
