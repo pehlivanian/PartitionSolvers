@@ -95,51 +95,47 @@ $ cmake --build build -- -j4
 ```
 
 Aside from the SWIG python binaries, the builds creates the executables:
-```
-|&#2500- build
-|   |-- CMakeFiles
-|   |   |-- 3.15.2
-|   |   |   |-- CompilerIdC
-|   |   |   |   &#2514-- tmp
-|   |   |   &#2514-- CompilerIdCXX
-|   |   |       \u2514-- tmp
-|   |   &#2514-- CMakeTmp
-|   |-- examples
-|   |-- src
-|   |   &#2514-- cpp
-|   |       |-- CMakeFiles
-|   |       |   |-- DP.dir
-|   |       |   |-- DP_solver_demo.dir
-|   |       |   |-- LTSS.dir
-|   |       |   |-- LTSS_solver_demo.dir
-|   |       |   |-- _proto.dir
-|   |       |   |   &#2514-- __
-|   |       |   |       &#2514-- python
-|   |       |   |-- proto_swig_compilation.dir
-|   |       |   |-- solver_timer.dir
-|   |       |   &#2514-- timer.dir
-|   |       &#2514-- test
-|   |           &#2514-- CMakeFiles
-|   |               &#2514-- gtest_all.dir
-|   &#2514-- tests
-|-- catboost_info
-|   |-- learn
-|   &#2514-- tmp
-|-- figures
-|-- figures_for_presentation
-|-- NYBCData
-|-- NYS_data
-|   &#2514-- nyct2010_21b
-|-- presentation
-|-- __pycache__
-&#2514-- src
-    |-- cpp
-    |   |-- include
-    |   &#2514-- test
-    |-- python
-    &#2514-- scripts
-
-```
+&#251c&#2500&#2500 build
+&#2502   &#251c&#2500&#2500 CMakeFiles
+&#2502   &#2502   &#251c&#2500&#2500 3.15.2
+&#2502   &#2502   &#2502   &#251c&#2500&#2500 CompilerIdC
+&#2502   &#2502   &#2502   &#2502   &#2514&#2500&#2500 tmp
+&#2502   &#2502   &#2502   &#2514&#2500&#2500 CompilerIdCXX
+&#2502   &#2502   &#2502       &#2514&#2500&#2500 tmp
+&#2502   &#2502   &#2514&#2500&#2500 CMakeTmp
+&#2502   &#251c&#2500&#2500 examples
+&#2502   &#251c&#2500&#2500 src
+&#2502   &#2502   &#2514&#2500&#2500 cpp
+&#2502   &#2502       &#251c&#2500&#2500 CMakeFiles
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 DP.dir
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 DP_solver_demo.dir
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 LTSS.dir
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 LTSS_solver_demo.dir
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 _proto.dir
+&#2502   &#2502       &#2502   &#2502   &#2514&#2500&#2500 __
+&#2502   &#2502       &#2502   &#2502       &#2514&#2500&#2500 python
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 proto_swig_compilation.dir
+&#2502   &#2502       &#2502   &#251c&#2500&#2500 solver_timer.dir
+&#2502   &#2502       &#2502   &#2514&#2500&#2500 timer.dir
+&#2502   &#2502       &#2514&#2500&#2500 test
+&#2502   &#2502           &#2514&#2500&#2500 CMakeFiles
+&#2502   &#2502               &#2514&#2500&#2500 gtest_all.dir
+&#2502   &#2514&#2500&#2500 tests
+&#251c&#2500&#2500 catboost_info
+&#2502   &#251c&#2500&#2500 learn
+&#2502   &#2514&#2500&#2500 tmp
+&#251c&#2500&#2500 figures
+&#251c&#2500&#2500 figures_for_presentation
+&#251c&#2500&#2500 NYBCData
+&#251c&#2500&#2500 NYS_data
+&#2502   &#2514&#2500&#2500 nyct2010_21b
+&#251c&#2500&#2500 presentation
+&#251c&#2500&#2500 __pycache__
+&#2514&#2500&#2500 src
+    &#251c&#2500&#2500 cpp
+    &#2502   &#251c&#2500&#2500 include
+    &#2502   &#2514&#2500&#2500 test
+    &#251c&#2500&#2500 python
 
 Demos, unittests are straightforward. To generate runtime charts:
 
