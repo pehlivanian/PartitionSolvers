@@ -96,53 +96,48 @@ $ cmake --build build -- -j4
 
 Aside from the SWIG python binaries, the builds creates the executables:
 ```
-\u251c\u2500\u2500 build
-\u2502   \u251c\u2500\u2500 CMakeFiles
-\u2502   \u2502   \u251c\u2500\u2500 3.15.2
-\u2502   \u2502   \u2502   \u251c\u2500\u2500 CompilerIdC
-\u2502   \u2502   \u2502   \u2502   \u2514\u2500\u2500 tmp
-\u2502   \u2502   \u2502   \u2514\u2500\u2500 CompilerIdCXX
-\u2502   \u2502   \u2502       \u2514\u2500\u2500 tmp
-\u2502   \u2502   \u2514\u2500\u2500 CMakeTmp
-\u2502   \u251c\u2500\u2500 examples
-\u2502   \u251c\u2500\u2500 src
-\u2502   \u2502   \u2514\u2500\u2500 cpp
-\u2502   \u2502       \u251c\u2500\u2500 CMakeFiles
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 DP.dir
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 DP_solver_demo.dir
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 LTSS.dir
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 LTSS_solver_demo.dir
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 _proto.dir
-\u2502   \u2502       \u2502   \u2502   \u2514\u2500\u2500 __
-\u2502   \u2502       \u2502   \u2502       \u2514\u2500\u2500 python
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 proto_swig_compilation.dir
-\u2502   \u2502       \u2502   \u251c\u2500\u2500 solver_timer.dir
-\u2502   \u2502       \u2502   \u2514\u2500\u2500 timer.dir
-\u2502   \u2502       \u2514\u2500\u2500 test
-\u2502   \u2502           \u2514\u2500\u2500 CMakeFiles
-\u2502   \u2502               \u2514\u2500\u2500 gtest_all.dir
-\u2502   \u2514\u2500\u2500 tests
-\u251c\u2500\u2500 catboost_info
-\u2502   \u251c\u2500\u2500 learn
-\u2502   \u2514\u2500\u2500 tmp
-\u251c\u2500\u2500 figures
-\u251c\u2500\u2500 figures_for_presentation
-\u251c\u2500\u2500 NYBCData
-\u251c\u2500\u2500 NYS_data
-\u2502   \u2514\u2500\u2500 nyct2010_21b
-\u251c\u2500\u2500 presentation
-\u251c\u2500\u2500 __pycache__
-\u2514\u2500\u2500 src
-    \u251c\u2500\u2500 cpp
-    \u2502   \u251c\u2500\u2500 include
-    \u2502   \u2514\u2500\u2500 test
-    \u251c\u2500\u2500 python
-    \u2514\u2500\u2500 scripts
-
-|--DP_solver_demo   // Partition solver demo
-|--LTSS_solver_demo // Single subset (LTSS) solver demo
-|--solver_timer     // Run timings
-|--gtest_all        // tests
+|&#2500- build
+|   |-- CMakeFiles
+|   |   |-- 3.15.2
+|   |   |   |-- CompilerIdC
+|   |   |   |   &#2514-- tmp
+|   |   |   &#2514-- CompilerIdCXX
+|   |   |       \u2514-- tmp
+|   |   &#2514-- CMakeTmp
+|   |-- examples
+|   |-- src
+|   |   &#2514-- cpp
+|   |       |-- CMakeFiles
+|   |       |   |-- DP.dir
+|   |       |   |-- DP_solver_demo.dir
+|   |       |   |-- LTSS.dir
+|   |       |   |-- LTSS_solver_demo.dir
+|   |       |   |-- _proto.dir
+|   |       |   |   &#2514-- __
+|   |       |   |       &#2514-- python
+|   |       |   |-- proto_swig_compilation.dir
+|   |       |   |-- solver_timer.dir
+|   |       |   &#2514-- timer.dir
+|   |       &#2514-- test
+|   |           &#2514-- CMakeFiles
+|   |               &#2514-- gtest_all.dir
+|   &#2514-- tests
+|-- catboost_info
+|   |-- learn
+|   &#2514-- tmp
+|-- figures
+|-- figures_for_presentation
+|-- NYBCData
+|-- NYS_data
+|   &#2514-- nyct2010_21b
+|-- presentation
+|-- __pycache__
+&#2514-- src
+    |-- cpp
+    |   |-- include
+    |   &#2514-- test
+    |-- python
+    &#2514-- scripts
 
 ```
 
