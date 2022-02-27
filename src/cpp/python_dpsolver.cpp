@@ -24,15 +24,15 @@ struct distributionException : public std::exception {
   };
 };
 
-std::pair<std::vector<std::vector<int> >, int> compute_optimal_num_clusters_OLS_all(int n,
-										    int T,
-										    std::vector<float> a,
-										    std::vector<float> b,
-										    int parametric_dist,
-										    bool risk_partitioning_objective,
-										    bool use_rational_optimization,
-										    float gamma,
-										    int reg_power) {
+std::vector<std::pair<std::vector<std::vector<int> >,float> > compute_optimal_num_clusters_OLS_all(int n,
+								    int T,
+								    std::vector<float> a,
+								    std::vector<float> b,
+								    int parametric_dist,
+								    bool risk_partitioning_objective,
+								    bool use_rational_optimization,
+								    float gamma,
+								    int reg_power) {
 
   auto dp = DPSolver(n, 
 		     T, 
@@ -46,10 +46,11 @@ std::pair<std::vector<std::vector<int> >, int> compute_optimal_num_clusters_OLS_
 		     false,
 		     true);
 
-  std::vector<std::vector<int> > optimal_partition = dp.get_optimal_subsets_extern();
-  int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
+  std::vector<std::pair<std::vector<std::vector<int> >,float> > subsets_and_scores = dp.get_all_subsets_and_scores_extern();
+  // int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
 
-  return std::make_pair(optimal_partition, optimal_t);
+  // return std::make_pair(subsets_and_scores, optimal_t);
+  return subsets_and_scores;
 }
 
 int compute_optimal_num_clusters_OLS(int n,

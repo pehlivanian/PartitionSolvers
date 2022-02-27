@@ -161,6 +161,47 @@ DPSolver::optimize_for_fixed_S(int S) {
 }
 
 void
+DPSolver::find_optimal_t() {
+  std::vector<float> X; X.resize(subsets_and_scores_.size()); std::iota(X.begin(), X.end(), 1.);
+  std::vector<float> scores, score_diffs;
+  scores.resize(subsets_and_scores_.size()); score_diffs.resize(subsets_and_scores_.size());
+  std::transform(subsets_and_scores_.begin(), 
+		 subsets_and_scores_.end(), scores.begin(), [](const auto &a){return a.second;});
+  std::adjacent_difference(scores.begin(), scores.end(), score_diffs.begin());
+  for (auto& el : X)
+    el = log(el);
+  for (auto& el : score_diffs)
+    el = log(el);
+  
+  Eigen::MatrixXf X_mat = Eigen::MatrixXf::Zero(score_diffs.size()-2, 2);
+  Eigen::VectorXf y_vec = Eigen::VectorXf::Zero(score_diffs.size()-2);
+  
+  for (size_t i=0; i<score_diffs.size()-2; ++i) {
+    X_mat(i,0) = X[i+2];
+    X_mat(i,1) = 1.;
+    y_vec(i) = score_diffs[i+2];
+  }
+  
+  // OLS solution is a matrix of shape (2,1)
+  Eigen::MatrixXf beta_hat = X_mat.colPivHouseholderQr().solve(y_vec);
+  
+  // Compute residuals
+  Eigen::VectorXf resids = Eigen::VectorXf::Zero(score_diffs.size()-2);
+  int bestInd = 0;
+  float minResid = std::numeric_limits<float>::max();
+  for (int i=0; i<static_cast<int>(score_diffs.size())-2; ++i) {
+    resids(i) = y_vec(i) - beta_hat(0) * X_mat(i,0) - beta_hat(1) * X_mat(i,1);
+    if (resids(i) < minResid) {
+      bestInd = i;
+      minResid = resids(i);
+    }
+  }
+  optimal_num_clusters_OLS_ = bestInd + 1;
+  subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].first;
+  optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].second;
+}
+
+void
 DPSolver::optimize() {
   if (sweep_down_ || find_optimal_t_) {
     int S;
@@ -176,44 +217,7 @@ DPSolver::optimize() {
     }
     if (find_optimal_t_) {
 #if (!IS_CXX_11) && !(__cplusplus == 201103L) 
-      std::vector<float> X; X.resize(subsets_and_scores_.size()); std::iota(X.begin(), X.end(), 1.);
-      std::vector<float> scores, score_diffs;
-      scores.resize(subsets_and_scores_.size()); score_diffs.resize(subsets_and_scores_.size());
-      std::transform(subsets_and_scores_.begin(), 
-		     subsets_and_scores_.end(), scores.begin(), [](const auto &a){return a.second;});
-      std::adjacent_difference(scores.begin(), scores.end(), score_diffs.begin());
-      for (auto& el : X)
-	el = log(el);
-      for (auto& el : score_diffs)
-	el = log(el);
-
-      Eigen::MatrixXf X_mat = Eigen::MatrixXf::Zero(score_diffs.size()-2, 2);
-      Eigen::VectorXf y_vec = Eigen::VectorXf::Zero(score_diffs.size()-2);
-
-      for (size_t i=0; i<score_diffs.size()-2; ++i) {
-	X_mat(i,0) = X[i+2];
-	X_mat(i,1) = 1.;
-	y_vec(i) = score_diffs[i+2];
-      }
-
-      // OLS solution is a matrix of shape (2,1)
-      Eigen::MatrixXf beta_hat = X_mat.colPivHouseholderQr().solve(y_vec);
-
-      // Compute residuals
-      Eigen::VectorXf resids = Eigen::VectorXf::Zero(score_diffs.size()-2);
-      int bestInd = 0;
-      float minResid = std::numeric_limits<float>::max();
-      for (int i=0; i<static_cast<int>(score_diffs.size())-2; ++i) {
-	resids(i) = y_vec(i) - beta_hat(0) * X_mat(i,0) - beta_hat(1) * X_mat(i,1);
-	if (resids(i) < minResid) {
-	  bestInd = i;
-	  minResid = resids(i);
-	}
-      }
-      optimal_num_clusters_OLS_ = bestInd + 1;
-      subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].first;
-      optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].second;
-
+      find_optimal_t();
 #else
       optimal_num_clusters_OLS_ = -1;
 #endif

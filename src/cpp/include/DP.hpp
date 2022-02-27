@@ -12,7 +12,7 @@
 #include <cmath>
 #include <math.h>
 
-#if !IS_CXX_11 && !(__cplusplus == 201103L)
+#if (!IS_CXX_11) && !(__cplusplus == 201103L)
   #include <Eigen/Dense>
   using namespace Eigen;
 #else
@@ -54,7 +54,6 @@ public:
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
     optimal_num_clusters_OLS_{0}
-
     
   { _init(); }
 
@@ -83,7 +82,7 @@ public:
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
     optimal_num_clusters_OLS_{0}
-    
+ 
   { _init(); }
 
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;
@@ -131,6 +130,7 @@ private:
   void reorder_subsets(std::vector<std::vector<int> >&, std::vector<float>&);
   float compute_score(int, int);
   float compute_ambient_score(float, float);
+  void find_optimal_t();
 };
 
 

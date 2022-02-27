@@ -9,6 +9,8 @@
 #include <limits>
 #include <cmath>
 
+#include "threadpool.hpp"
+#include "threadsafequeue.hpp"
 #include "score.hpp"
 #include "LTSS.hpp"
 #include "DP.hpp"
@@ -536,10 +538,133 @@ TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
     }
 }
 
+TEST_P(DPSolverTestFixture, TestSweepWithOptimalTMatchesManualSweep) {
+  int n = 1000;
+  int T = 10;
+  int NUM_TRIALS = 5;
+  float EPSILON = 0.5;
+  float MU = 100.;
+  float SIGMA = 1.;
+  float POISSON_INTENSITY = 1000.;
+  
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_int_distribution<int> genNumMixed(2, 5);
+  std::uniform_real_distribution<float> distb_uniform(1., 10.);
+  std::poisson_distribution<int> distb_poisson(POISSON_INTENSITY);
+  std::normal_distribution<float> distb_normal(MU, SIGMA);
+  auto genb_poisson = [&distb_poisson, 
+		       &mersenne_engine](){ 
+    return static_cast<float>(distb_poisson(mersenne_engine)); 
+  };
+  auto genb_normal = [&distb_normal, &mersenne_engine]() {
+    return distb_normal(mersenne_engine);
+  };
+   
+  using all_scores = std::pair<std::vector<std::vector<int> >, float>;
+  using all_part_scores = std::vector<all_scores>;
+ 
+  int num_clusters, numMixed;
+  all_part_scores all_data;
+
+  objective_fn objective = GetParam();
+  
+  std::vector<float> a, b(n);
+
+  for (int j=0; j<NUM_TRIALS; ++j) {
+
+    numMixed = genNumMixed(mersenne_engine);
+    
+    switch (objective) {
+    case objective_fn::Gaussian :
+      std::generate(b.begin(), b.end(), genb_normal);
+      a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+    case objective_fn::Poisson :
+      std::generate(b.begin(), b.end(), genb_poisson);
+      a = mixture_poisson_dist(n, b, numMixed, EPSILON);
+    case objective_fn::RationalScore :
+      std::generate(b.begin(), b.end(), genb_normal);
+      a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+    }
+    
+    // Sweep, optimal t calculation handled by solver
+    auto dp = DPSolver(n, T, a, b,
+		       objective,
+		       true,
+		       true,
+		       0.,
+		       1.,
+		       false,
+		       true);
+    
+    num_clusters = dp.get_optimal_num_clusters_OLS_extern();
+    all_data = dp.get_all_subsets_and_scores_extern(); // std::vector<std::pair<std::vector<std::vector<int> >,float> >
+
+    // Sweep, optimal t calculation handled in parallel offline
+    ThreadsafeQueue<std::pair<std::vector<std::vector<int>>, float> > results_queue;
+    std::vector<ThreadPool::TaskFuture<void> > v;
+
+    auto task = [&results_queue](int n,
+				 int i,
+				 std::vector<float> a,
+				 std::vector<float> b,
+				 objective_fn objective,
+				 float gamma,
+				 int reg_power) {
+      auto dp = DPSolver(n, i, a, b, 
+			 objective,
+			 true,
+			 true,
+			 gamma,
+			 reg_power);
+      results_queue.push(std::make_pair(dp.get_optimal_subsets_extern(),
+					dp.get_optimal_score_extern()));
+      
+    };
+
+    for (int i=T; i>=1; --i)
+      v.push_back(DefaultThreadPool::submitJob(task, n, i, a, b, objective, 0., 1.));
+
+    for (auto& item : v)
+      item.get();
+
+    std::pair<std::vector<std::vector<int> >, float> result;
+    std::vector<std::pair<std::vector<std::vector<int> >, float> > results{static_cast<size_t>(T+1)};
+    while (!results_queue.empty()) {
+      bool valid = results_queue.waitPop(result);
+      if (valid)
+	results[result.first.size()] = result;
+    }
+
+    ASSERT_EQ(all_data.size(), results.size());
+
+    for (size_t i=0; i<all_data.size(); ++i) {
+      std::vector<std::vector<int> > v1 = all_data[i].first;
+      std::vector<std::vector<int> > v2 = results[i].first;
+
+      ASSERT_EQ(v1.size(), v2.size());
+
+      sort_partition(v1);
+      sort_partition(v2);
+
+      for (size_t j=0; j<v1.size(); ++j) {
+	auto arr1 = v1[j];
+	auto arr2 = v2[j];
+
+	ASSERT_EQ(arr1.size(), arr2.size());
+
+	std::sort(arr1.begin(), arr1.end()); std::sort(arr2.begin(), arr2.end());
+	for (size_t k=0; k<arr1.size(); ++k) 
+	  ASSERT_EQ(arr1[k], arr2[k]);
+      }
+    }
+  }
+}
+
 TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
   int n = 10000;
   int T = 10;
-  int NUM_TRIALS = 5;
+  int NUM_TRIALS = 2;
   int NUM_EPOCHS = 1;
   float EPSILON = 0.5;
   float MU = 100.;

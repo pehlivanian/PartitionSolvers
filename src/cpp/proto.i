@@ -19,6 +19,7 @@ namespace std {
 %template(IArrayArrayFPair) pair<vector<vector<int> >, float>;
 %template(SWCont) vector<pair<vector<vector<int> >, float> >;
 %template(OLSPair) pair<vector<vector<int> >, int >;
+%template(ScoreCont) pair<vector<vector<pair< vector<vector<int> >, float> > >, int>;
 }
 
 %include "python_dpsolver.hpp"
