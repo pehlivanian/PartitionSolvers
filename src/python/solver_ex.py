@@ -163,8 +163,6 @@ for num_trial in range(NUM_TRIALS):
                                                         True,
                                                         sweep_best=True)
 
-    import pdb; pdb.set_trace()
-    
     all_results_r = all_results_sweep()
     best_result_OLS_sweep_r = best_result_OLS_sweep()
 

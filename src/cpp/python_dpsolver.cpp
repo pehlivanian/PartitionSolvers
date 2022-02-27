@@ -24,7 +24,7 @@ struct distributionException : public std::exception {
   };
 };
 
-std::vector<std::pair<std::vector<std::vector<int> >,float> > compute_optimal_num_clusters_OLS_all(int n,
+std::pair<std::vector<std::pair<std::vector<std::vector<int> >,float> >, int> compute_optimal_num_clusters_OLS_all(int n,
 								    int T,
 								    std::vector<float> a,
 								    std::vector<float> b,
@@ -47,10 +47,9 @@ std::vector<std::pair<std::vector<std::vector<int> >,float> > compute_optimal_nu
 		     true);
 
   std::vector<std::pair<std::vector<std::vector<int> >,float> > subsets_and_scores = dp.get_all_subsets_and_scores_extern();
-  // int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
+  int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
 
-  // return std::make_pair(subsets_and_scores, optimal_t);
-  return subsets_and_scores;
+  return std::make_pair(subsets_and_scores, optimal_t);
 }
 
 int compute_optimal_num_clusters_OLS(int n,

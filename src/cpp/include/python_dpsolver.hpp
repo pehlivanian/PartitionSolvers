@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <exception>
 
-std::vector<std::pair<std::vector<std::vector<int> >,float> > compute_optimal_num_clusters_OLS_all(int n,
+std::pair<std::vector<std::pair<std::vector<std::vector<int> >,float> >, int> compute_optimal_num_clusters_OLS_all(int n,
 												   int T,
 												   std::vector<float> a,
 												   std::vector<float> b,
