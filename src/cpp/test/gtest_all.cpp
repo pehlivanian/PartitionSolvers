@@ -727,6 +727,42 @@ TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
   }
 }
 
+TEST_P(DPSolverTestFixture, TestDisreteValuedPriorityFunction) {
+  int NUM_TRIALS = 100;
+  int n = 1000, T = 25;
+  int numClusters;
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::discrete_distribution<int> dista({50, 50});
+  
+  std::vector<float> a, b;
+  a.resize(n); b.resize(n);
+
+  objective_fn objective = GetParam();
+
+  for (int i=0; i<NUM_TRIALS; ++i) {
+    for (auto &el : a)
+      el = static_cast<float>(dista(gen)) + 1.;
+    for (auto &el: b)
+      el = 1.;
+
+      auto dp = DPSolver(n, T, a, b,
+			 objective,
+			 true,
+			 true,
+			 0.,
+			 1.,
+			 false,
+			 true);
+
+      numClusters = dp.get_optimal_num_clusters_OLS_extern();
+
+      ASSERT_GE(numClusters, 1);
+  }
+ 
+}
+
 TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
   int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
 

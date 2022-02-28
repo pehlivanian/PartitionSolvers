@@ -118,7 +118,7 @@ def find_optimal_t(max_num_partitions, g, h, distribution, risk_partitioning_obj
                                             distribution,
                                             risk_partitioning_objective,
                                             True,
-                                            sweep_best=True)()
+                                            sweep_best=True)()[1]
     return optimal_t
     
 

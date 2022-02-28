@@ -105,7 +105,7 @@ sigma = 5.
 epsilon = 0.45
 objective_fn = Distribution.GAUSSIAN
 
-NUM_TRIALS = 100
+NUM_TRIALS = 20
 
 def fit(z):
     y = np.log(z)
@@ -180,4 +180,32 @@ for num_trial in range(NUM_TRIALS):
     print('Optimal t: {} Theoretical t: {}\n'.format(fit(ddf.iloc[0,:].values), num_true_clusters))
 
 
+
+#######################################################################
+# Cluster detection                                                   #
+#######################################################################   
+# 2 clusters; $a \in \left{ -1, 1\right}$, $b \in \left{ 1\right}$    #
+# t selection in C++; should identify 2 clusters                      #
+#######################################################################
+n = 1000
+max_num_partitions = 10
+objective_fn = Distribution.RATIONALSCORE
+
+a = rng.choice([-10.,10.],size=n)
+b = np.asarray([1.]*n)
+
+
+print('PRIORITY UNIQUE VALUES: {!r}'.format(np.unique(a/b)))
+
+for max_num_subsets in range(50,1,-1):
+    best_result_OLS_sweep = solverSWIG_DP.OptimizerSWIG(max_num_subsets,
+                                                        a,
+                                                        b,
+                                                        objective_fn,
+                                                        True,
+                                                        True,
+                                                        sweep_best=True)
+    
+    best_result_OLS_sweep_r = best_result_OLS_sweep()
+    print('OPTIMAL T: {} MAX_T: {}'.format(best_result_OLS_sweep_r[1], max_num_subsets))
 
