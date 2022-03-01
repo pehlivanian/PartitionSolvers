@@ -187,11 +187,12 @@ for num_trial in range(NUM_TRIALS):
 # 2 clusters; $a \in \left{ -1, 1\right}$, $b \in \left{ 1\right}$    #
 # t selection in C++; should identify 2 clusters                      #
 #######################################################################
-n = 1000
-max_num_partitions = 10
+n = 2000
 objective_fn = Distribution.RATIONALSCORE
 
-a = rng.choice([-10.,10.],size=n)
+# a grouped in 4 clusters
+a = rng.choice([-20., -10.,10., 20.],size=n)
+a += rng.normal(0., 1., size=n)
 b = np.asarray([1.]*n)
 
 

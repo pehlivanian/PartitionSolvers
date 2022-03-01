@@ -12,7 +12,7 @@ import matplotlib.pyplot as plot
 import pickle
 import proto
 
-SEED = 0xC0FFEE3
+SEED = 0xC0FFEE5
 rng = np.random.RandomState(SEED)
 
 MU = 100.
@@ -115,14 +115,14 @@ class EpsilonTask(object):
                                                                         True,
                                                                         sweep_best=True)
                     best_result_k = best_result_OLS_sweep()
-                    cum_best_result_k += best_result_k
-                    all_estimates.append(best_result_k)
+                    cum_best_result_k += best_result_k[1]
+                    all_estimates.append(best_result_k[1])
 
             best_result_OLS_sweep_r = float(cum_best_result_k)/float(self.k*self.num_trials)
 
             xaxis.append(epsilon)
             yaxis.append(best_result_OLS_sweep_r)
-            std_error.append(np.sqrt(np.var(all_estimates)))
+            std_error.append(2*np.sqrt(np.var(all_estimates)))
         
             print('Optimal t: {} Theoretical t: {}\n'.format(best_result_OLS_sweep_r,  self.num_true_clusters))      
             print('CASE epsilon {} done'.format(epsilon))
@@ -244,11 +244,11 @@ class Plotter(object):
 
         plot.plot(xaxis, yaxis, Plotter.colorMap[1])
 
-        plot.plot(xaxis, yaxis_smoothed, Plotter.colorMap[0], label='smoothed predicted', linewidth=3)
         # Remove for plots of raw std error bars
         # plot.plot(xaxis, [x-y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
         # plot.plot(xaxis, [x+y for x,y in zip(yaxis,std_error)], Plotter.colorMap[1], linewidth=1)
         plot.plot(xaxis, [x-y for x,y in zip(yaxis_smoothed,std_error_smoothed)], Plotter.colorMap[0], linewidth=1)
+        plot.plot(xaxis, yaxis_smoothed, Plotter.colorMap[0], label='smoothed predicted', linewidth=3)        
         plot.plot(xaxis, [x+y for x,y in zip(yaxis_smoothed,std_error_smoothed)], Plotter.colorMap[0], linewidth=1)
 
         plot.plot(xaxis, [num_true_clusters]*len(yaxis), '-.', linewidth=2, label='theoretical')
