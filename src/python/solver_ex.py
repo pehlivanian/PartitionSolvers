@@ -195,9 +195,6 @@ a = rng.choice([-20., -10.,10., 20.],size=n)
 a += rng.normal(0., 1., size=n)
 b = np.asarray([1.]*n)
 
-
-print('PRIORITY UNIQUE VALUES: {!r}'.format(np.unique(a/b)))
-
 for max_num_subsets in range(50,1,-1):
     best_result_OLS_sweep = solverSWIG_DP.OptimizerSWIG(max_num_subsets,
                                                         a,

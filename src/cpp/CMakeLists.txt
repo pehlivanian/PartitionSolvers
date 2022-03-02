@@ -9,8 +9,9 @@ cmake_policy(SET CMP0086 OLD)
 if (SWIG_BINDINGS)
   find_package(SWIG REQUIRED)
 endif()
-find_package(PythonInterp REQUIRED)
-find_package(PythonLibs REQUIRED)
+find_package(PythonInterp 3 REQUIRED)
+find_package(PythonLibs 3 REQUIRED)
+
 
 include(UseSWIG)
 include(GNUInstallDirs)
