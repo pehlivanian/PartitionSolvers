@@ -1,6 +1,7 @@
 import multiprocessing
 from functools import partial
 from itertools import islice
+import matplotlib.pyplot as plot
 import numpy as np
 import pandas as pd
 import solverSWIG_DP
@@ -95,6 +96,8 @@ class QATask(object):
     self.poisson_intensity = poisson_intensity
     self.num_epsilon_values = num_epsilon_values
     self.task = partial(self._task)
+    self.rng = np.random.RandomState()
+
 
   def __call__(self):
     return self.task()
@@ -107,18 +110,37 @@ class QATask(object):
       theepsilon = 0.05*j
       ranking_quality_ind = [0.]*len(cluster_list)
       for i in range(self.num_experiments_per_epsilon):
-        b = rng.poisson(self.poisson_intensity,size=self.deviate_size).astype(float)
+        b = self.rng.poisson(self.poisson_intensity,size=self.deviate_size).astype(float)
         # Branch on number of true clusters
         # RISK PARTITIONING CASE        
         split = int(self.deviate_size/self.num_true_clusters)
         resid = self.deviate_size - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
-        levels = np.linspace(theepsilon/self.num_true_clusters,
-                             2-theepsilon/self.num_true_clusters,
-                             self.num_true_clusters)
-        q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
+        if (False):
+           levels = np.linspace(theepsilon/self.num_true_clusters,
+                                2-theepsilon/self.num_true_clusters,
+                                self.num_true_clusters)
+           q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
+           a = self.rng.poisson(q*b).astype(float)
+        elif (self.num_true_clusters == 2):
+           q = np.concatenate([np.full(splits[0],1.0-theepsilon),
+                               np.full(splits[1],1.0+theepsilon)])
+        elif (self.num_true_clusters == 3):
+           q = np.concatenate([np.full(splits[0],1.0-theepsilon),np.full(splits[1],1.0),np.full(splits[2],1.0+theepsilon)])
+        elif (self.num_true_clusters == 10):
+           q = np.concatenate([np.full(splits[0],1.0-theepsilon),
+                               np.full(splits[1],1.0-4.*theepsilon/5.),
+                               np.full(splits[2],1.0-3.*theepsilon/5.),
+                               np.full(splits[3],1.0-2.*theepsilon/5.),
+                               np.full(splits[4],1.0-1.*theepsilon/5.),
+                               np.full(splits[5],1.0+1.*theepsilon/5.),
+                               np.full(splits[6],1.0+2.*theepsilon/5.),
+                               np.full(splits[7],1.0+3.*theepsilon/5.),
+                               np.full(splits[8],1.0+4.*theepsilon/5.),
+                               np.full(splits[9],1.0+theepsilon)])
         a = rng.poisson(q*b).astype(float)
+           
         all_rp = [0.]*len(cluster_list)
         score_rp = [0.]*len(cluster_list)
         confusion = [0.]*len(cluster_list)        
@@ -210,7 +232,44 @@ class Baselines(object):
     thresholds_df = pd.DataFrame(thresholds)
     thresholds_df = thresholds_df[['rp'+str(x) for x in cluster_list]+['mcd'+str(x) for x in cluster_list]]
     thresholds_df.to_csv("null_thresholds.csv")
-        
+
+class Plotter(object):
+   colorMap = ['m', 'r', 'g']
+   win_len = 5
+
+   linestyles = [
+      'solid',
+      'dotted',
+      'dashed',
+      'dashdot'
+      ]
+
+   def moving_average(a, n) :
+      ret = np.cumsum(a, dtype=float)
+      ret[n:] = ret[n:] - ret[:-n]
+      return ret[n - 1:] / n
+
+   @staticmethod
+   def plotRankingQuality(clusterList, num_true_clusters):
+      df = pd.read_csv('exp0_ranking_quality.csv')
+      grouped = df.groupby(by=['epsilon'], as_index=False).mean()
+      columns = ['rp'+str(x) for x in clusterList]
+      xaxis = grouped['epsilon']
+      for ind,cluster in enumerate(clusterList):
+         column = 'rp'+str(cluster)
+         yaxis = grouped.loc[:,column].values
+         plot.plot(xaxis,yaxis,label='t = {}'.format(cluster), linestyle=Plotter.linestyles[ind])
+      plot.xlabel('signal strength (epsilon)')
+      plot.ylabel('ranking quality')
+      plot.legend()
+      plot.grid(True)
+      plot.title('Ranking quality - {} risk partitions'.format(num_true_clusters))
+      plot.pause(1)
+      plot.savefig('Figure_4_3_partitions.pdf')
+      plot.close()
+         
+
+   
 class QA(object):
   def __init__(self):
     self.full_range = range(NUM_EPSILON_VALUES)
@@ -282,15 +341,17 @@ if __name__ == '__main__':
   NUM_THRESHOLD_CALCULATIONS = 1000   # 1000 in paper
   NUM_EXPERIMENTS_PER_EPSILON = 1000  # 1000 in paper
   NUM_EPSILON_VALUES = 11             # 11 in paper
-  CLUSTER_LIST = list(range(2,11))    # (2,3,5,10) in paper
+  CLUSTER_LIST = (2,3,10)    # (2,3,5,10) in paper
   NUM_WORKERS = multiprocessing.cpu_count() - 1
 
   assert not DEVIATE_SIZE%2
   
-  b = Baselines()
-  b.create_null_scores()
-  b.create_thresholds()
+  # b = Baselines()
+  # b.create_null_scores()
+  # b.create_thresholds()
   Q = QA()
   Q.compute_ranking_quality(num_true_clusters)
   Q.compute_detection_power()
+  P = Plotter()
+  P.plotRankingQuality(CLUSTER_LIST, num_true_clusters)
 

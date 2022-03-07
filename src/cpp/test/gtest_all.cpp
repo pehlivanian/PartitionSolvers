@@ -500,6 +500,7 @@ TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
     
   int numClusters, numMixed;
   std::vector<std::vector<int> > partition;
+  std::vector<std::pair<std::vector<std::vector<int> >,float> > partitions;
 
   objective_fn objective = GetParam();
   
@@ -533,8 +534,15 @@ TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
       
       numClusters = dp.get_optimal_num_clusters_OLS_extern();
       partition = dp.get_optimal_subsets_extern();
+      partitions = dp.get_all_subsets_and_scores_extern();
 
       ASSERT_EQ(numClusters,partition.size());
+      ASSERT_EQ(T+1, partitions.size());
+
+      for (int i=1; i<static_cast<int>(partitions.size()); ++i) {
+	ASSERT_EQ(i, partitions[i].first.size());
+      }
+
     }
 }
 
