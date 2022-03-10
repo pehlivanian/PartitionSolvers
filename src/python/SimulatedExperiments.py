@@ -89,7 +89,8 @@ class NullTask(object):
         return null_scores_df
 
 class QATask(object):
-  def __init__(self, num_true_clusters, num_experiments_per_epsilon, deviate_size, poisson_intensity, num_epsilon_values):
+  def __init__(self, num_true_clusters, num_experiments_per_epsilon, deviate_size,
+               poisson_intensity, num_epsilon_values, figures_for_submission=False):
     self.num_true_clusters = num_true_clusters
     self.num_experiments_per_epsilon = num_experiments_per_epsilon
     self.deviate_size = deviate_size
@@ -97,7 +98,7 @@ class QATask(object):
     self.num_epsilon_values = num_epsilon_values
     self.task = partial(self._task)
     self.rng = np.random.RandomState()
-
+    self.figures_for_submission = figures_for_submission
 
   def __call__(self):
     return self.task()
@@ -117,28 +118,29 @@ class QATask(object):
         resid = self.deviate_size - (split * self.num_true_clusters)
         resids = ([1] * int(resid)) + ([0] * (self.num_true_clusters - int(resid)))
         splits = [split + r for r in resids]
-        if (False):
+        if (self.figures_for_submission):
+           if (self.num_true_clusters == 2):
+              q = np.concatenate([np.full(splits[0],1.0-theepsilon),
+                                  np.full(splits[1],1.0+theepsilon)])
+           elif (self.num_true_clusters == 3):
+              q = np.concatenate([np.full(splits[0],1.0-theepsilon),np.full(splits[1],1.0),np.full(splits[2],1.0+theepsilon)])
+           elif (self.num_true_clusters == 10):
+              q = np.concatenate([np.full(splits[0],1.0-theepsilon),
+                                  np.full(splits[1],1.0-4.*theepsilon/5.),
+                                  np.full(splits[2],1.0-3.*theepsilon/5.),
+                                  np.full(splits[3],1.0-2.*theepsilon/5.),
+                                  np.full(splits[4],1.0-1.*theepsilon/5.),
+                                  np.full(splits[5],1.0+1.*theepsilon/5.),
+                                  np.full(splits[6],1.0+2.*theepsilon/5.),
+                                  np.full(splits[7],1.0+3.*theepsilon/5.),
+                                  np.full(splits[8],1.0+4.*theepsilon/5.),
+                                  np.full(splits[9],1.0+theepsilon)])
+        else:
            levels = np.linspace(theepsilon/self.num_true_clusters,
                                 2-theepsilon/self.num_true_clusters,
                                 self.num_true_clusters)
            q = np.concatenate([np.full(s,l) for s,l in zip(splits,levels)])
-           a = self.rng.poisson(q*b).astype(float)
-        elif (self.num_true_clusters == 2):
-           q = np.concatenate([np.full(splits[0],1.0-theepsilon),
-                               np.full(splits[1],1.0+theepsilon)])
-        elif (self.num_true_clusters == 3):
-           q = np.concatenate([np.full(splits[0],1.0-theepsilon),np.full(splits[1],1.0),np.full(splits[2],1.0+theepsilon)])
-        elif (self.num_true_clusters == 10):
-           q = np.concatenate([np.full(splits[0],1.0-theepsilon),
-                               np.full(splits[1],1.0-4.*theepsilon/5.),
-                               np.full(splits[2],1.0-3.*theepsilon/5.),
-                               np.full(splits[3],1.0-2.*theepsilon/5.),
-                               np.full(splits[4],1.0-1.*theepsilon/5.),
-                               np.full(splits[5],1.0+1.*theepsilon/5.),
-                               np.full(splits[6],1.0+2.*theepsilon/5.),
-                               np.full(splits[7],1.0+3.*theepsilon/5.),
-                               np.full(splits[8],1.0+4.*theepsilon/5.),
-                               np.full(splits[9],1.0+theepsilon)])
+           
         a = rng.poisson(q*b).astype(float)
            
         all_rp = [0.]*len(cluster_list)
@@ -267,9 +269,8 @@ class Plotter(object):
       plot.pause(1)
       plot.savefig('Figure_4_3_partitions.pdf')
       plot.close()
-         
-
-   
+      
+      
 class QA(object):
   def __init__(self):
     self.full_range = range(NUM_EPSILON_VALUES)
@@ -345,10 +346,13 @@ if __name__ == '__main__':
   NUM_WORKERS = multiprocessing.cpu_count() - 1
 
   assert not DEVIATE_SIZE%2
-  
+
+  # Create baselines: null scores and 95% thresholds, only need to run once to persist
   # b = Baselines()
   # b.create_null_scores()
   # b.create_thresholds()
+
+  # Generate statistics
   Q = QA()
   Q.compute_ranking_quality(num_true_clusters)
   Q.compute_detection_power()
