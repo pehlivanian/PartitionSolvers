@@ -85,7 +85,7 @@ auto main() -> int {
     std::vector<float> c(m), d(m);
     
     std::uniform_real_distribution<float> distc(-10., 10.);
-    std::uniform_real_distribution<float> distd(1., 1.);
+    std::uniform_real_distribution<float> distd(0., 1.);
     
     auto genc = [&distc, &mersenne_engine]() { return distc(mersenne_engine); };
     auto gend = [&distd, &mersenne_engine]() { return distd(mersenne_engine); };
