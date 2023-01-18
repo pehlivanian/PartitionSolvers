@@ -273,7 +273,7 @@ TEST(DPSolverTest, TestBaselines ) {
 }
 
 TEST_P(DPSolverTestFixture, TestOrderedProperty) {
-  // Case (n,T) = (50,5)
+  // Case (n,T) = (50,5)g
   int n = 100, T = 20;
   
   std::default_random_engine gen;
@@ -309,6 +309,45 @@ TEST_P(DPSolverTestFixture, TestOrderedProperty) {
     // We ignored the first element as adjacent_difference has unintuitive
     // result for first element
     ASSERT_EQ(sum, v.size()-1);
+  }
+}
+
+TEST_P(DPSolverTestFixtureExponentialFamily, TestSinglePartitionSpecification) {
+  int NUM_CASES = 10;
+  size_t T = 1, lower_n=10, upper_n=1500;
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_int_distribution<int> distn(lower_n, upper_n);
+  std::uniform_real_distribution<float> dista(-10., 10.);
+  std::uniform_real_distribution<float> distb(0., 10.);
+
+  std::vector<float> a, b;
+
+  for (int case_num=0; case_num<NUM_CASES; ++case_num) {
+    int n = distn(gen);
+    a.resize(n); b.resize(n);
+
+    for (auto& el : a)
+      el = dista(gen);
+    for (auto& el : b)
+      el = distb(gen);
+
+    ASSERT_GE(n, lower_n);
+    ASSERT_LE(n, upper_n);
+
+    objective_fn objective = GetParam();
+
+    auto dp = DPSolver(n, T, a, b, objective, false, true);
+    auto dp_opt = dp.get_optimal_subsets_extern();
+    
+    ASSERT_EQ(dp_opt.size(), 1);
+    
+    std::vector<int> v = std::move(dp_opt[0]);
+    std::sort(v.begin(), v.end());
+    for(std::size_t i=0; i<v.size(); ++i)
+      ASSERT_EQ(v[i], i);
+    
   }
 }
 

@@ -257,9 +257,7 @@ std::pair<std::vector<std::vector<int> >,float> sweep_best__DP(int n,
 		       reg_power);
 
     score = dp.get_optimal_score_extern();
-    std::cout << "NUM_PARTITIONS: " << i << " SCORE: " << score << std::endl;
     if (score > best_score) {
-      // std::cout << "FOUND BEST PARTITION: i = " << i << " score = " << score << std::endl;
       best_score = score;
       subsets = dp.get_optimal_subsets_extern();
     }

@@ -138,7 +138,6 @@ namespace Objectives {
     }  
 
     void compute_partial_sums() override {
-      float a_cum;
       a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
       b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
     
@@ -148,9 +147,7 @@ namespace Objectives {
       }
 
       for (int i=0; i<n_; ++i) {
-	a_cum = -a_[i-1];
 	for (int j=i+1; j<=n_; ++j) {
-	  a_cum += a_[j-2];
 	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	}
@@ -208,7 +205,6 @@ namespace Objectives {
     }
 
     void compute_partial_sums() override {
-      float a_cum;
       a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
       b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
     
@@ -218,9 +214,7 @@ namespace Objectives {
       }
 
       for (int i=0; i<n_; ++i) {
-	a_cum = -a_[i-1];
 	for (int j=i+1; j<=n_; ++j) {
-	  a_cum += a_[j-2];
 	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	}
@@ -262,7 +256,6 @@ namespace Objectives {
     }
 
     void compute_partial_sums() override {
-      float a_cum;
       a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
       b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
     
@@ -272,10 +265,8 @@ namespace Objectives {
       }
 
       for (int i=0; i<n_; ++i) {
-	a_cum = -a_[i-1];
 	for (int j=i+1; j<=n_; ++j) {
-	  a_cum += a_[j-2];
-	  a_sums_[i][j] = a_sums_[i][j-1] + (2*a_cum + a_[j-1])*a_[j-1];
+	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	}
       }  
@@ -296,7 +287,7 @@ namespace Objectives {
     }
 
     float compute_score_multclust_optimized(int i, int j) override {
-      float score = a_sums_[i][j] / b_sums_[i][j];
+      float score = a_sums_[i][j] * a_sums_[i][j] / b_sums_[i][j];
       return score;
     }
 

@@ -4,6 +4,7 @@
 #include <list>
 #include <utility>
 #include <vector>
+#include <map>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -131,7 +132,28 @@ private:
   float compute_score(int, int);
   float compute_ambient_score(float, float);
   void find_optimal_t();
+
 };
+
+template<class Caller>
+float compute_score_wrapper(Caller* that, int i, int j) {
+  return that->compute_score(i, j);
+}
+
+template<typename R, typename... Args>
+  auto memoize(std::function<R(Args...)>&& f) {
+    using F = std::function<R(Args...)>;
+    std::map<std::tuple<Args...>,R> cache;
+    return ([cache=std::map<std::tuple<Args...>,R>{},
+	     f=std::forward<F>(f)](Args&&... args) mutable {
+	      std::tuple<Args...> t(args...);
+	      if (cache.find(t) == cache.end()) {
+		R r = f(std::forward<Args...>(args)...);
+		cache[t] = r;
+	      }
+	      return cache[t];
+	  });	  
+}
 
 
 #endif

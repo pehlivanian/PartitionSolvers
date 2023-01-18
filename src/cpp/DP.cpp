@@ -307,12 +307,13 @@ DPSolver::print_nextStart_() {
 
 float
 DPSolver::compute_score(int i, int j) {
-  return context_->compute_score(i, j);
+  return context_->compute_score(i,j);
 }
 
 float
 DPSolver::compute_ambient_score(float a, float b) {
   return context_->compute_ambient_score(a, b);
 }
+
 
 
