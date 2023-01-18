@@ -22,15 +22,15 @@ include_directories(/usr/local/include/eigen3)
 
 # LTSSSolver
 add_executable(LTSS_solver_demo LTSS_solver_demo.cpp)
-target_link_libraries(LTSS_solver_demo LTSS)
+target_link_libraries(LTSS_solver_demo LTSS score)
 
 # DPSolver
 add_executable(DP_solver_demo DP_solver_demo.cpp)
-target_link_libraries(DP_solver_demo DP LTSS pthread)
+target_link_libraries(DP_solver_demo DP LTSS score pthread)
 
 # solver_timer
 add_executable(solver_timer solver_timer.cpp)
-target_link_libraries(solver_timer DP timer)
+target_link_libraries(solver_timer DP score timer)
 
 set(CMAKE_SWIG_FLAGS "")
 
@@ -46,5 +46,6 @@ include_directories(${PYTHON_INCLUDE_PATH})
 add_library(timer OBJECT timer.cpp)
 add_library(DP OBJECT DP.cpp)
 add_library(LTSS OBJECT LTSS.cpp)
+add_library(score OBJECT score.cpp)
 
-target_link_libraries(DP LTSS)
+target_link_libraries(DP LTSS score)

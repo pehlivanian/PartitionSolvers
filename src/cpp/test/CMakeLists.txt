@@ -18,7 +18,7 @@ find_package(GTest REQUIRED)
 
 # gtest_all
 add_executable(gtest_all gtest_all.cpp)
-target_link_libraries(gtest_all LTSS DP ${GTEST_LIBRARIES} pthread)
+target_link_libraries(gtest_all LTSS DP score ${GTEST_LIBRARIES} pthread)
 
 include_directories(${GTEST_INCLUDE_DIRS})
 

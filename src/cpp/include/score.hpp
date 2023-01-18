@@ -10,7 +10,8 @@
 #include <iostream>
 #include <cmath>
 #include <exception>
-
+#include <immintrin.h>
+#include <string.h>
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -56,7 +57,8 @@ namespace Objectives {
 
     virtual ~ParametricContext() = default;
 
-    virtual void compute_partial_sums() {};
+    void compute_partial_sums();
+    void compute_partial_sums_AVX256();
 
     virtual float compute_score_multclust(int, int) = 0;
     virtual float compute_score_multclust_optimized(int, int) = 0;
@@ -70,33 +72,8 @@ namespace Objectives {
     bool getRiskPartitioningObjective() const { return risk_partitioning_objective_; }
     bool getUseRationalOptimization() const { return use_rational_optimization_; }
 
-    float compute_score(int i, int j) {
-      if (risk_partitioning_objective_) {
-	if (use_rational_optimization_) {
-	  return compute_score_riskpart_optimized(i, j);
-	}
-	else {
-	  return compute_score_riskpart(i, j);
-	}
-      }
-      else {
-	if (use_rational_optimization_) {
-	  return compute_score_multclust_optimized(i, j);
-	}
-	else {
-	  return compute_score_multclust(i, j);
-	}
-      }
-    }
-    
-    float compute_ambient_score(float a, float b) {
-      if (risk_partitioning_objective_) {
-	return compute_ambient_score_riskpart(a, b);
-      }
-      else {
-	return compute_ambient_score_multclust(a, b);
-      }
-    }
+    float compute_score(int, int);
+    float compute_ambient_score(float, float);
   };
   
   class PoissonContext : public ParametricContext {
@@ -136,23 +113,6 @@ namespace Objectives {
     float compute_ambient_score_riskpart(float a, float b) override {
       return a*std::log(a/b);
     }  
-
-    void compute_partial_sums() override {
-      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-    
-      for (int i=0; i<n_; ++i) {
-	a_sums_[i][i] = 0.;
-	b_sums_[i][i] = 0.;
-      }
-
-      for (int i=0; i<n_; ++i) {
-	for (int j=i+1; j<=n_; ++j) {
-	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
-	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
-	}
-      }  
-    }
 
     float compute_score_riskpart_optimized(int i, int j) override {
       float score = a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]);
@@ -204,23 +164,6 @@ namespace Objectives {
       return a*a/2./b;
     }
 
-    void compute_partial_sums() override {
-      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-    
-      for (int i=0; i<n_; ++i) {
-	a_sums_[i][i] = 0.;
-	b_sums_[i][i] = 0.;
-      }
-
-      for (int i=0; i<n_; ++i) {
-	for (int j=i+1; j<=n_; ++j) {
-	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
-	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
-	}
-      }  
-    }
-
     float compute_score_multclust_optimized(int i, int j) override {
       float score = (a_sums_[i][j] > b_sums_[i][j]) ? .5*(std::pow(a_sums_[i][j], 2)/b_sums_[i][j] + b_sums_[i][j]) - a_sums_[i][j] : 0.;
       return score;
@@ -255,23 +198,6 @@ namespace Objectives {
       }
     }
 
-    void compute_partial_sums() override {
-      a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-      b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-    
-      for (int i=0; i<n_; ++i) {
-	a_sums_[i][i] = 0.;
-	b_sums_[i][i] = 0.;
-      }
-
-      for (int i=0; i<n_; ++i) {
-	for (int j=i+1; j<=n_; ++j) {
-	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
-	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
-	}
-      }  
-    }
-  
     float compute_score_multclust(int i, int j) override {
       float score = std::pow(std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.), 2) /
 	std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
