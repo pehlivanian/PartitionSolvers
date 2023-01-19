@@ -62,6 +62,7 @@ namespace Objectives {
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
     void compute_partial_sums_parallel();
+    void compute_scores_parallel(std::vector<std::vector<float>>&);
 
     virtual float compute_score_multclust(int, int) = 0;
     virtual float compute_score_multclust_optimized(int, int) = 0;

@@ -347,6 +347,76 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
   }
 }
 
+TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
+  using namespace Objectives;
+
+  int n = 100;
+  int numTrials = 1000;
+  std::vector<bool> trials(numTrials);
+  
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+  std::uniform_int_distribution<int> distRow(0, n-1);
+  std::uniform_int_distribution<int> distCol(0, n);
+
+  std::vector<float> a(n), b(n);
+  for (auto &el : a)
+    el = dista(gen);
+  for (auto &el : b)
+    el = distb(gen);
+
+  for (auto _ : trials) {
+    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
+    
+    context->compute_partial_sums();
+    auto a_sums_serial = context->get_partial_sums_a();
+    auto b_sums_serial = context->get_partial_sums_b();
+
+    auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+    std::vector<std::vector<float>> partialSums_serial_from_context;
+    
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_serial[i][j] = context->compute_score(i, j);
+      }
+    }
+    context->compute_scores_parallel(partialSums_serial_from_context);    
+
+    context->compute_partial_sums_parallel();
+    auto a_sums_parallel = context->get_partial_sums_a();
+    auto b_sums_parallel = context->get_partial_sums_b();
+    
+    auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_parallel[i][j] = context->compute_score(i, j);
+      }
+    }
+    
+    int ind1 = distRow(gen);
+    int ind2 = distCol(gen);
+    
+    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_parallel[ind1][ind2]);
+    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_parallel[ind1][ind2]);    
+    
+    int numSamples = 1000;
+    std::vector<bool> samples(numSamples);
+
+    for (auto _ : samples) {
+      int ind1_ = distRow(gen);
+      int ind2_ = distRow(gen);
+      if (ind1_ == ind2_)
+	continue;
+
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
+      ASSERT_EQ(partialSums_parallel[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
+    }
+  }
+}
+
 TEST(DPSolverTest, TestBaselines ) {
 
   std::vector<float> a{0.0212651 , -0.20654906, -0.20654906, -0.20654906, -0.20654906,
