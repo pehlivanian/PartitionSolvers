@@ -12,9 +12,8 @@
 #include <exception>
 #include <immintrin.h>
 #include <string.h>
+#include <thread>
 
-#include "threadpool.hpp"
-#include "threadsafequeue.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 

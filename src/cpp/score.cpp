@@ -58,47 +58,39 @@ Objectives::ParametricContext::compute_partial_sums_AVX256() {
 
 void
 Objectives::ParametricContext::compute_partial_sums_parallel() {
-  int n = a_.size();
 
-  const int TAIL = 400; // 400
-  const int CUTOFF = std::max(0, n_ - TAIL);
+  int numThreads = 10;
 
   a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
   b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
 
-  ThreadsafeQueue<int> results_queue;
-  std::vector<ThreadPool::TaskFuture<void>> v;
-
-  for (int i=0; i<n; ++i) {
+  for (int i=0; i<n_; ++i) {
     a_sums_[i][i] = 0.;
     b_sums_[i][i] = 0.;
   }
 
-  auto task_ab = [&results_queue, this](std::vector<float>& rowa, std::vector<float>& rowb, int i, int n) {
-    for (int j=i+1; j<=n; ++j) {
-      rowa[j] = rowa[j-1] + this->a_[j-1];
-      rowb[j] = rowb[j-1] + this->b_[j-1];
+  auto task_ab_block = [this](int ind1, int ind2) {
+    for (int i=ind1; i<ind2; ++i) {
+      for (int j=i+1; j<=this->n_; ++j) {
+	this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
+	this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
+      }
     }
-    results_queue.push(i);
   };
 
-  for (int i=0; i<CUTOFF; ++i) {
-    v.push_back(DefaultThreadPool::submitJob(task_ab, std::ref(a_sums_[i]), std::ref(b_sums_[i]), i, n));
-  }
-
-  for (int i=CUTOFF; i<n; ++i) {
-    task_ab(a_sums_[i], b_sums_[i], i, n);
-  }
+  int blockSize = static_cast<float>(n_)/static_cast<float>(numThreads);
+  int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
   
-  for (auto& item : v)
-    item.get();
+  std::vector<std::thread> threads;
 
-  int result;
-  while (!results_queue.empty()) {
-    // bool valid = results_queue.waitPop(result);
-    // spin like hell
-     bool valid = results_queue.tryPop(result);
-  }
+  while (endOfBlock < n_) {
+    threads.emplace_back(task_ab_block, startOfBlock, endOfBlock);
+    startOfBlock = endOfBlock; endOfBlock+= blockSize;
+   }
+  threads.emplace_back(task_ab_block, startOfBlock, n_);
+  
+  for (auto it=threads.begin(); it!=threads.end(); ++it)
+    it->join();
 
 }
 
