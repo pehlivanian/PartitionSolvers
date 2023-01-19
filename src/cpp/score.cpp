@@ -15,7 +15,7 @@ Objectives::ParametricContext::compute_partial_sums() {
       a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
       b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
     }
-      }  
+  }  
 }
 
 void
@@ -55,6 +55,53 @@ Objectives::ParametricContext::compute_partial_sums_AVX256() {
     }
   }
 }
+
+void
+Objectives::ParametricContext::compute_partial_sums_parallel() {
+  int n = a_.size();
+
+  const int TAIL = 400; // 400
+  const int CUTOFF = std::max(0, n_ - TAIL);
+
+  a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+  b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+
+  ThreadsafeQueue<int> results_queue;
+  std::vector<ThreadPool::TaskFuture<void>> v;
+
+  for (int i=0; i<n; ++i) {
+    a_sums_[i][i] = 0.;
+    b_sums_[i][i] = 0.;
+  }
+
+  auto task_ab = [&results_queue, this](std::vector<float>& rowa, std::vector<float>& rowb, int i, int n) {
+    for (int j=i+1; j<=n; ++j) {
+      rowa[j] = rowa[j-1] + this->a_[j-1];
+      rowb[j] = rowb[j-1] + this->b_[j-1];
+    }
+    results_queue.push(i);
+  };
+
+  for (int i=0; i<CUTOFF; ++i) {
+    v.push_back(DefaultThreadPool::submitJob(task_ab, std::ref(a_sums_[i]), std::ref(b_sums_[i]), i, n));
+  }
+
+  for (int i=CUTOFF; i<n; ++i) {
+    task_ab(a_sums_[i], b_sums_[i], i, n);
+  }
+  
+  for (auto& item : v)
+    item.get();
+
+  int result;
+  while (!results_queue.empty()) {
+    // bool valid = results_queue.waitPop(result);
+    // spin like hell
+     bool valid = results_queue.tryPop(result);
+  }
+
+}
+
 
 float
 Objectives::ParametricContext::compute_score(int i, int j) {

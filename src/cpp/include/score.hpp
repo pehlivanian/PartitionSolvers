@@ -13,6 +13,9 @@
 #include <immintrin.h>
 #include <string.h>
 
+#include "threadpool.hpp"
+#include "threadsafequeue.hpp"
+
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 namespace Objectives {
@@ -59,6 +62,7 @@ namespace Objectives {
 
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
+    void compute_partial_sums_parallel();
 
     virtual float compute_score_multclust(int, int) = 0;
     virtual float compute_score_multclust_optimized(int, int) = 0;
@@ -74,6 +78,9 @@ namespace Objectives {
 
     float compute_score(int, int);
     float compute_ambient_score(float, float);
+
+    std::vector<std::vector<float>> get_partial_sums_a() const { return a_sums_; }
+    std::vector<std::vector<float>> get_partial_sums_b() const { return b_sums_; }
   };
   
   class PoissonContext : public ParametricContext {

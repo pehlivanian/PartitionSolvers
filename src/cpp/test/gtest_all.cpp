@@ -48,7 +48,7 @@ void sort_partition(std::vector<std::vector<int> > &v) {
 		((a.size() == b.size()) && 
 		 (a.at(std::distance(a.begin(), std::min_element(a.begin(), a.end()))) <
 		  b.at(std::distance(b.begin(), std::min_element(b.begin(), b.end())))));
-		});
+	    });
 }
 
 void pretty_print_subsets(std::vector<std::vector<int> >& subsets) {
@@ -203,7 +203,7 @@ TEST_P(DPSolverTestFixture, TestOptimizationFlag) {
     ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
     
     for (size_t j=0; j<subsets_unopt.size(); ++j) {
-	ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
+      ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
     }    
   }
 }
@@ -224,6 +224,128 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::Poisson
 					   )
 			 );
+
+TEST(DPSolverTest, TestAVXMatchesSerial) {
+  using namespace Objectives;
+
+  int n = 500;
+  int numTrials = 1000;
+  std::vector<bool> trials(numTrials);
+  
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+  std::uniform_int_distribution<int> distRow(0, n-1);
+  std::uniform_int_distribution<int> distCol(0, n);
+
+  std::vector<float> a(n), b(n);
+  for (auto &el : a)
+    el = dista(gen);
+  for (auto &el : b)
+    el = distb(gen);
+
+  for (auto _ : trials) {
+    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
+    context->compute_partial_sums();
+    auto a_sums_serial = context->get_partial_sums_a();
+    auto b_sums_serial = context->get_partial_sums_b();
+
+    context->compute_partial_sums_AVX256();
+    auto a_sums_AVX = context->get_partial_sums_a();
+    auto b_sums_AVX = context->get_partial_sums_b();
+    
+    int ind1 = distRow(gen);
+    int ind2 = distCol(gen);
+    
+    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_AVX[ind2][ind1]);
+    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_AVX[ind2][ind1]);
+  }
+}
+
+
+TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
+  using namespace Objectives;
+
+  int n = 100;
+  int numTrials = 1000;
+  std::vector<bool> trials(numTrials);
+  
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+  std::uniform_int_distribution<int> distRow(0, n-1);
+  std::uniform_int_distribution<int> distCol(0, n);
+
+  std::vector<float> a(n), b(n);
+  for (auto &el : a)
+    el = dista(gen);
+  for (auto &el : b)
+    el = distb(gen);
+
+  for (auto _ : trials) {
+    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
+    
+    context->compute_partial_sums();
+    auto a_sums_serial = context->get_partial_sums_a();
+    auto b_sums_serial = context->get_partial_sums_b();
+
+    auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+    
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_serial[i][j] = context->compute_score(i, j);
+      }
+    }
+
+    context->compute_partial_sums_AVX256();
+    auto a_sums_AVX = context->get_partial_sums_a();
+    auto b_sums_AVX = context->get_partial_sums_b();
+    
+    auto partialSums_AVX = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));    
+
+    for(int i=0; i<n; ++i) {
+      for (int j=0; j<=i; ++j) {
+	partialSums_AVX[j][i] = context->compute_score(i, j);
+      }
+    }
+    
+    context->compute_partial_sums_parallel();
+    auto a_sums_parallel = context->get_partial_sums_a();
+    auto b_sums_parallel = context->get_partial_sums_b();
+    
+    auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_parallel[i][j] = context->compute_score(i, j);
+      }
+    }
+    
+    int ind1 = distRow(gen);
+    int ind2 = distCol(gen);
+    
+    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_AVX[ind2][ind1]);
+    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_AVX[ind2][ind1]);
+    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_parallel[ind1][ind2]);
+    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_parallel[ind1][ind2]);
+    
+    
+    int numSamples = 1000;
+    std::vector<bool> samples(numSamples);
+
+    for (auto _ : samples) {
+      int ind1_ = distRow(gen);
+      int ind2_ = distRow(gen);
+      if (ind1_ == ind2_)
+	continue;
+      if (ind1_ >= ind2_)
+	std::swap(ind1_, ind2_);
+
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_AVX[ind1_][ind2_]);
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
+    }
+  }
+}
 
 TEST(DPSolverTest, TestBaselines ) {
 
@@ -546,43 +668,43 @@ TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
   std::vector<float> a, b;
   a.resize(n); b.resize(n);
 
-    for (int j=0; j<NUM_TRIALS; ++j) {
+  for (int j=0; j<NUM_TRIALS; ++j) {
 
-      numMixed = genNumMixed(mersenne_engine);
+    numMixed = genNumMixed(mersenne_engine);
 
-      switch (objective) {
-      case objective_fn::Gaussian :
-	std::generate(b.begin(), b.end(), genb_normal);
-	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
-      case objective_fn::Poisson :
-	std::generate(b.begin(), b.end(), genb_poisson);
-	a = mixture_poisson_dist(n, b, numMixed, EPSILON);
-      case objective_fn::RationalScore :
-	std::generate(b.begin(), b.end(), genb_normal);
-	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
-      }
-      
-      auto dp = DPSolver(n, T, a, b,
-			 objective,
-			 true,
-			 true,
-			 0.,
-			 1.,
-			 false,
-			 true);
-      
-      numClusters = dp.get_optimal_num_clusters_OLS_extern();
-      partition = dp.get_optimal_subsets_extern();
-      partitions = dp.get_all_subsets_and_scores_extern();
-
-      ASSERT_EQ(numClusters,partition.size());
-      ASSERT_EQ(T+1, partitions.size());
-
-      for (int i=1; i<static_cast<int>(partitions.size()); ++i) {
-	ASSERT_EQ(i, partitions[i].first.size());
-      }
-
+    switch (objective) {
+    case objective_fn::Gaussian :
+      std::generate(b.begin(), b.end(), genb_normal);
+      a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
+    case objective_fn::Poisson :
+      std::generate(b.begin(), b.end(), genb_poisson);
+      a = mixture_poisson_dist(n, b, numMixed, EPSILON);
+    case objective_fn::RationalScore :
+      std::generate(b.begin(), b.end(), genb_normal);
+      a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
     }
+      
+    auto dp = DPSolver(n, T, a, b,
+		       objective,
+		       true,
+		       true,
+		       0.,
+		       1.,
+		       false,
+		       true);
+      
+    numClusters = dp.get_optimal_num_clusters_OLS_extern();
+    partition = dp.get_optimal_subsets_extern();
+    partitions = dp.get_all_subsets_and_scores_extern();
+
+    ASSERT_EQ(numClusters,partition.size());
+    ASSERT_EQ(T+1, partitions.size());
+
+    for (int i=1; i<static_cast<int>(partitions.size()); ++i) {
+      ASSERT_EQ(i, partitions[i].first.size());
+    }
+
+  }
 }
 
 TEST_P(DPSolverTestFixture, TestSweepWithOptimalTMatchesManualSweep) {
@@ -794,18 +916,18 @@ TEST_P(DPSolverTestFixture, TestDisreteValuedPriorityFunction) {
     for (auto &el: b)
       el = 1.;
 
-      auto dp = DPSolver(n, T, a, b,
-			 objective,
-			 true,
-			 true,
-			 0.,
-			 1.,
-			 false,
-			 true);
+    auto dp = DPSolver(n, T, a, b,
+		       objective,
+		       true,
+		       true,
+		       0.,
+		       1.,
+		       false,
+		       true);
 
-      numClusters = dp.get_optimal_num_clusters_OLS_extern();
+    numClusters = dp.get_optimal_num_clusters_OLS_extern();
 
-      ASSERT_GE(numClusters, 1);
+    ASSERT_GE(numClusters, 1);
   }
  
 }

@@ -47,5 +47,6 @@ add_library(timer OBJECT timer.cpp)
 add_library(DP OBJECT DP.cpp)
 add_library(LTSS OBJECT LTSS.cpp)
 add_library(score OBJECT score.cpp)
+target_link_libraries(score pthread)
 
 target_link_libraries(DP LTSS score)
