@@ -33,6 +33,7 @@ namespace Objectives {
   protected:
     std::vector<float> a_;
     std::vector<float> b_;
+    std::vector<std::vector<float>> partialSums_;
     int n_;
     std::vector<std::vector<float> > a_sums_;
     std::vector<std::vector<float> > b_sums_;
@@ -62,7 +63,8 @@ namespace Objectives {
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
     void compute_partial_sums_parallel();
-    void compute_scores_parallel(std::vector<std::vector<float>>&);
+    void compute_scores_parallel();
+    void compute_scores();
 
     virtual float compute_score_multclust(int, int) = 0;
     virtual float compute_score_multclust_optimized(int, int) = 0;
@@ -81,6 +83,9 @@ namespace Objectives {
 
     std::vector<std::vector<float>> get_partial_sums_a() const { return a_sums_; }
     std::vector<std::vector<float>> get_partial_sums_b() const { return b_sums_; }
+
+    std::vector<std::vector<float>> get_scores() const { return partialSums_; }
+    float get_score(int i, int j) const { return partialSums_[i][j]; }
   };
   
   class PoissonContext : public ParametricContext {
@@ -96,9 +101,8 @@ namespace Objectives {
 								       risk_partitioning_objective,
 								       use_rational_optimization,
 								       "Poisson")
-    { if (use_rational_optimization) {
-	compute_partial_sums();
-      }
+    { 
+      compute_scores_parallel();
     }
   
     float compute_score_multclust(int i, int j) override {    
@@ -146,9 +150,8 @@ namespace Objectives {
 									risk_partitioning_objective,
 									use_rational_optimization,
 									"Gaussian")
-    { if (use_rational_optimization) {
-	compute_partial_sums();
-      }
+    {
+      compute_scores_parallel();
     }
   
     float compute_score_multclust(int i, int j) override {
@@ -200,9 +203,8 @@ namespace Objectives {
 									     risk_partitioning_objective,
 									     use_rational_optimization,
 									     "RationalScore")
-    { if (use_rational_optimization) {
-	compute_partial_sums();
-      }
+    {
+      compute_scores_parallel();
     }
 
     float compute_score_multclust(int i, int j) override {

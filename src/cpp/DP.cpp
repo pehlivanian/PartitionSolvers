@@ -96,15 +96,6 @@ DPSolver::create() {
     }
   }
 
-  // Precompute partial sums
-  std::vector<std::vector<float> > partialSums;
-  partialSums = std::vector<std::vector<float> >(n_, std::vector<float>(n_, 0.));
-  for (int i=0; i<n_; ++i) {
-    for (int j=i; j<n_; ++j) {
-      partialSums[i][j] = compute_score(i, j);
-    }
-  }
-
   // Fill in column-by-column from the left
   float score;
   float maxScore;
@@ -113,7 +104,7 @@ DPSolver::create() {
     for (int i=0; i<n_; ++i) {
       maxScore = std::numeric_limits<float>::lowest();
       for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	score = partialSums[i][k] + maxScore_[k][j-1];
+	score = compute_score(i,k) + maxScore_[k][j-1];
 	if (score > maxScore) {
 	  maxScore = score;
 	  maxNextStart = k;
@@ -307,7 +298,7 @@ DPSolver::print_nextStart_() {
 
 float
 DPSolver::compute_score(int i, int j) {
-  return context_->compute_score(i,j);
+  return context_->get_score(i,j);
 }
 
 float

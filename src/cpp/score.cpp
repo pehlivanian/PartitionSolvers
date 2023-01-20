@@ -1,6 +1,6 @@
 #include "score.hpp"
 
-const int NUMTHREADS = 10;
+const int NUMTHREADS = 6;
 
 void 
 Objectives::ParametricContext::compute_partial_sums() {
@@ -16,6 +16,26 @@ Objectives::ParametricContext::compute_partial_sums() {
     for (int j=i+1; j<=n_; ++j) {
       a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
       b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+    }
+  }  
+}
+
+void 
+Objectives::ParametricContext::compute_scores() {
+  a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+  b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
+  partialSums_ = std::vector<std::vector<float>>(n_, std::vector<float>(n_+1, 0.));
+  
+  for (int i=0; i<n_; ++i) {
+    a_sums_[i][i] = 0.;
+    b_sums_[i][i] = 0.;
+  }
+  
+  for (int i=0; i<n_; ++i) {
+    for (int j=i+1; j<=n_; ++j) {
+      a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+      b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+      partialSums_[i][j] = this->compute_score(i, j);
     }
   }  
 }
@@ -59,25 +79,25 @@ Objectives::ParametricContext::compute_partial_sums_AVX256() {
 }
 
 void
-Objectives::ParametricContext::compute_scores_parallel(std::vector<std::vector<float>>& partialSums) {
+Objectives::ParametricContext::compute_scores_parallel() {
 
-  const int numThreads = NUMTHREADS;
+  const int numThreads = std::min(n_-2, NUMTHREADS);
 
   a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
   b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
-  partialSums = std::vector<std::vector<float>>(n_, std::vector<float>(n_+1, 0.));
+  partialSums_ = std::vector<std::vector<float>>(n_, std::vector<float>(n_+1, 0.));
   
   for (int i=0; i<n_; ++i) {
     a_sums_[i][i] = 0.;
     b_sums_[i][i] = 0.;
   }
 
-  auto task_ab_block = [this, &partialSums](int ind1, int ind2) {
+  auto task_ab_block = [this](int ind1, int ind2) {
     for (int i=ind1; i<ind2; ++i) {
       for (int j=i+1; j<=this->n_; ++j) {
 	this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
 	this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
-	partialSums[i][j] = this->compute_score(i, j);
+	this->partialSums_[i][j] = this->compute_score(i, j);
       }
     }
   };
@@ -101,7 +121,7 @@ Objectives::ParametricContext::compute_scores_parallel(std::vector<std::vector<f
 void
 Objectives::ParametricContext::compute_partial_sums_parallel() {
 
-  const int numThreads = NUMTHREADS;
+  const int numThreads = std::min(n_-2, NUMTHREADS);
 
   a_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
   b_sums_ = std::vector<std::vector<float> >(n_, std::vector<float>(n_+1, std::numeric_limits<float>::lowest()));
@@ -140,20 +160,10 @@ Objectives::ParametricContext::compute_partial_sums_parallel() {
 float
 Objectives::ParametricContext::compute_score(int i, int j) {
   if (risk_partitioning_objective_) {
-    if (use_rational_optimization_) {
-      return compute_score_riskpart_optimized(i, j);
-    }
-    else {
-      return compute_score_riskpart(i, j);
-    }
+    return compute_score_riskpart_optimized(i, j);
   }
   else {
-    if (use_rational_optimization_) {
-      return compute_score_multclust_optimized(i, j);
-    }
-    else {
-      return compute_score_multclust(i, j);
-    }
+    return compute_score_multclust_optimized(i, j);
   }
 }
 
