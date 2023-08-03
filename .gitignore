@@ -8,7 +8,6 @@ __pycache__
 *.o
 *.dat
 *.dot
-*.pdf
 *.png
 *.csv
 *.tar.gz

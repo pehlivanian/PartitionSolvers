@@ -102,6 +102,7 @@ namespace Objectives {
 								       use_rational_optimization,
 								       "Poisson")
     { 
+      // Careful: calling virtual method from constructor
       compute_scores_parallel();
     }
   
@@ -151,6 +152,7 @@ namespace Objectives {
 									use_rational_optimization,
 									"Gaussian")
     {
+      // Careful: calling virtual method from constructor
       compute_scores_parallel();
     }
   
@@ -204,6 +206,7 @@ namespace Objectives {
 									     use_rational_optimization,
 									     "RationalScore")
     {
+      // Careful: calling virtual method from constructor
       compute_scores_parallel();
     }
 
