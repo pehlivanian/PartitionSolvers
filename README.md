@@ -87,10 +87,10 @@ $ ./src/scripts/runTimeGraphs.sh 5000 100 10 10
 - eigen >= 3.0
 - google mock, test [optional]
 
-### C++ cmake build options: {CMAKE_BUILD_TYPE, GTEST, SWIG_BINDINGS, USE_C++{11,14,17}}
+### C++ cmake build options: {CMAKE_BUILD_TYPE, GTEST, SWIG_BINDINGS, USE_C++17}
 ### Compile to ./build with tests, SWIG bindings as in 
 ```
-$ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON -DUSE_C++17=ON
+$ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DGTEST=ON -DSWIG_BINDINGS=ON
 $ cmake --build build -- -j4
 ```
 
@@ -101,33 +101,48 @@ Google test suite for C++ engine run via
 $ ./build/tests/gtest_all
 ```
 
+Python unittests run via
+```
+$ python solver_tests.py
+```
+
 
 ## Python api
 
-### Stand alone compilationg of SWIG bindings from command line:
+Compile binarys with -DSWIG_BINDINGS=ON or from command line:
+
+### Stand alone compilation of SWIG bindings
 ```
-$ swig -c++ -python proto.i
-$ g++ -std=c++17 -c -fPIC -O3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.6
-$ g++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o _proto.so -lstdc++
+
+$ swig -c++ -python -I./include -outdir ../python proto.i
+$ clang++ -std=c++17 -c -fPIC -mavx2 -O3 -I/usr/local/include/eigen3 LTSS.cpp \
+  python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.8 -I./include
+$ clang++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o \ 
+  LTSS.o proto_wrap.o -o ../python/_proto.so -lstdc++
 ```
-#### Please replace the /usr/include/python3.6 directory above with the include directory on your host, as in
+#### Please replace the /usr/include/python3.8 path with the location of Python.h, as in
 ```
 In [1]: from sysconfig import get_paths                                                                                  
 In [2]: from pprint import pprint                                                                                        
 In [3]: pprint(get_paths())                                                                                                                
 {'data': '/usr',
 
- 'include': '/usr/include/python3.6',
+ 'include': '/usr/include/python3.8',
 
- 'platinclude': '/usr/include/python3.6', 
- 'platlib': '/usr/lib/python3.6/site-packages',
- 'platstdlib': '/usr/lib/python3.6',
- 'purelib': '/usr/lib/python3.6/site-packages',
+ 'platinclude': '/usr/include/python3.8', 
+ 'platlib': '/usr/lib/python3.8/site-packages',
+ 'platstdlib': '/usr/lib/python3.8',
+ 'purelib': '/usr/lib/python3.8/site-packages',
  'scripts': '/usr/bin',
- 'stdlib': '/usr/lib/python3.6'}
+ 'stdlib': '/usr/lib/python3.8'}
 ```
 
 #### Test of SWIG bindings
+```
+$ python ./src/python/solver_tests.py
+```
+
+#### Python examples
 ```
 $ python ./src/python/solver_ex.py
 ```
