@@ -17,34 +17,26 @@
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
-namespace Objectives {
-  enum class objective_fn { Gaussian = 0, 
+enum class objective_fn { Gaussian = 0, 
 			    Poisson = 1, 
 			    RationalScore = 2 };
 
-  struct optimizationFlagException : public std::exception {
-   const char* what() const throw () {
+struct optimizationFlagException : public std::exception {
+  const char* what() const throw () {
     return "Optimized version not implemented";
   };
- };
+};
 
 
+namespace Objectives {
+  template<typename DataType>
   class ParametricContext {
-  protected:
-    std::vector<float> a_;
-    std::vector<float> b_;
-    std::vector<std::vector<float>> partialSums_;
-    int n_;
-    std::vector<std::vector<float> > a_sums_;
-    std::vector<std::vector<float> > b_sums_;
-    bool risk_partitioning_objective_;
-    bool use_rational_optimization_;
-    std::string name_;
 
   public:
-    ParametricContext(std::vector<float> a, 
-		      std::vector<float> b, 
-		      int n, 
+
+    ParametricContext(const std::vector<DataType>& a, 
+		      const std::vector<DataType>& b, 
+		      std::size_t n, 
 		      bool risk_partitioning_objective,
 		      bool use_rational_optimization,
 		      std::string name
@@ -52,194 +44,182 @@ namespace Objectives {
       a_{a},
       b_{b},
       n_{n},
+      partialSums_{std::vector<std::vector<DataType>>(n+1, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
+      // cache_{CacheType(n_+1, std::vector<int>(n_+1))},
       name_{name}
 
-    {}
+    {	
+      if (false) {
+	cache_ = (int**)malloc(sizeof(int*)*(n_+1));
+	for (int i=0; i<n_+1; ++i) {
+	  cache_[i] = (int*)malloc(sizeof(int)*(n_+1));
+	  memset(cache_[i], -1, (n_+1)*sizeof(int));
+	}
+      }
+    }
 
+    ParametricContext() = default;
     virtual ~ParametricContext() = default;
+
+    void init();
+
+    DataType get_score(int, int) const;
+    DataType get_ambient_score(DataType, DataType) const;
+    std::vector<std::vector<DataType>> get_scores() const;
+
+    std::string getName() const;
+    bool getRiskPartitioningObjective() const;
+    bool getUseRationalOptimization() const;
+
+    std::vector<std::vector<DataType>> get_partial_sums_a() const;
+    std::vector<std::vector<DataType>> get_partial_sums_b() const;
+
+    // Only for testing/benchmark purposes
+    // __compute_partial_sums__* fills a_sums_, b_sums_
+    void __compute_partial_sums__() { compute_partial_sums(); }
+    void __compute_partial_sums_AVX256__() { compute_partial_sums_AVX256(); }
+    void __compute_partial_sums_parallel__() { compute_partial_sums_parallel(); }
+    
+    // __compute_scores__ fills a_sums_, b_sums_, partialSums_
+    // Note that partialSums_ is the precached scores by (i, j)
+    void __compute_scores__() { compute_scores(); }
+    void __compute_scores_parallel__() { compute_scores_parallel(); }
+    void __compute_scores_AVX256__() { compute_scores_AVX256(); }
+
+    // __compute_score__ computes the score by (i, j)
+    // based on precached a_sums_, b_sums_
+    DataType __compute_score__(int i, int j) { return compute_score(i, j); }
+    DataType __compute_ambient_score__(DataType a, DataType b) { return compute_ambient_score(a, b); }
+
+  protected:
+    virtual DataType compute_score_multclust(int, int)		         = 0;
+    virtual DataType compute_score_riskpart(int, int)		         = 0;
+    virtual DataType compute_ambient_score_multclust(DataType, DataType) = 0;
+    virtual DataType compute_ambient_score_riskpart(DataType, DataType)  = 0;
+
+    virtual DataType compute_score_multclust_optimized(int, int)         = 0;
+    virtual DataType compute_score_riskpart_optimized(int, int)		 = 0;
+
+    DataType compute_score_multclust_memoized(int, int);
+    DataType compute_score_riskpart_memoized(int, int);
 
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
     void compute_partial_sums_parallel();
-    void compute_scores_parallel();
-    void compute_scores();
+    virtual void compute_scores();
+    virtual void compute_scores_AVX256();
+    virtual void compute_scores_parallel();
 
-    virtual float compute_score_multclust(int, int) = 0;
-    virtual float compute_score_multclust_optimized(int, int) = 0;
-    virtual float compute_score_riskpart(int, int) = 0;
-    virtual float compute_score_riskpart_optimized(int, int) = 0;
+    // DataType inline compute_score(int, int);
+    // DataType inline compute_ambient_score(DataType, DataType);
+    DataType compute_score(int, int);
+    DataType compute_ambient_score(DataType, DataType);
 
-    virtual float compute_ambient_score_multclust(float, float) = 0;
-    virtual float compute_ambient_score_riskpart(float, float) = 0;
+    std::vector<DataType> a_;
+    std::vector<DataType> b_;
+    std::size_t n_;
+    std::vector<std::vector<DataType> > a_sums_;
+    std::vector<std::vector<DataType> > b_sums_;
+    std::vector<std::vector<DataType>> partialSums_;
+    bool risk_partitioning_objective_;
+    bool use_rational_optimization_;
+    std::string name_;
 
-    std::string getName() const { return name_; }
-    bool getRiskPartitioningObjective() const { return risk_partitioning_objective_; }
-    bool getUseRationalOptimization() const { return use_rational_optimization_; }
+    int **cache_;
 
-    float compute_score(int, int);
-    float compute_ambient_score(float, float);
-
-    std::vector<std::vector<float>> get_partial_sums_a() const { return a_sums_; }
-    std::vector<std::vector<float>> get_partial_sums_b() const { return b_sums_; }
-
-    std::vector<std::vector<float>> get_scores() const { return partialSums_; }
-    float get_score(int i, int j) const { return partialSums_[i][j]; }
   };
+
   
-  class PoissonContext : public ParametricContext {
+  template<typename DataType>
+  class PoissonContext : public ParametricContext<DataType> {
 
   public:
-    PoissonContext(std::vector<float> a, 
-		   std::vector<float> b, 
-		   int n, 
+    PoissonContext(const std::vector<DataType>& a, 
+		   const std::vector<DataType>& b, 
+		   std::size_t n, 
 		   bool risk_partitioning_objective,
-		   bool use_rational_optimization) : ParametricContext(a,
-								       b,
-								       n,
-								       risk_partitioning_objective,
-								       use_rational_optimization,
-								       "Poisson")
-    { 
-      // Careful: calling virtual method from constructor
-      compute_scores_parallel();
-    }
-  
-    float compute_score_multclust(int i, int j) override {    
-      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
-      return (C>B)? C*std::log(C/B) + B - C : 0.;
-    }
+		   bool use_rational_optimization) : ParametricContext<DataType>{a,
+		      b,
+		      n,
+		      risk_partitioning_objective,
+		      use_rational_optimization,
+		      "Poisson"}
+    {}
 
-    float compute_score_riskpart(int i, int j) override {
-      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
-      return C*std::log(C/B);
-    }
-    
-    float compute_ambient_score_multclust(float a, float b) override {
-      return (a>b)? a*std::log(a/b) + b - a : 0.;
-    }
+    PoissonContext() = default;
 
-    float compute_ambient_score_riskpart(float a, float b) override {
-      return a*std::log(a/b);
-    }  
+  private:  
+    DataType compute_score_multclust(int, int) override;
+    DataType compute_score_riskpart(int, int) override;
+    DataType compute_ambient_score_multclust(DataType, DataType) override;
+    DataType compute_ambient_score_riskpart(DataType, DataType) override;
+    DataType compute_score_riskpart_optimized(int, int) override;
+    DataType compute_score_multclust_optimized(int, int) override;
 
-    float compute_score_riskpart_optimized(int i, int j) override {
-      float score = a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]);
-      return score;
-    }
-    
-    float compute_score_multclust_optimized(int i, int j) override {
-      float score = (a_sums_[i][j] > b_sums_[i][j]) ? a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]) + b_sums_[i][j] - a_sums_[i][j]: 0.;
-      return score;
-    }
-    
   };
 
-  class GaussianContext : public ParametricContext {
-
+  template<typename DataType>
+  class GaussianContext : public ParametricContext<DataType> {
   public:
-    GaussianContext(std::vector<float> a, 
-		    std::vector<float> b, 
-		    int n, 
+    GaussianContext(const std::vector<DataType>& a, 
+		    const std::vector<DataType>& b, 
+		    std::size_t n, 
 		    bool risk_partitioning_objective,
-		    bool use_rational_optimization) : ParametricContext(a,
-									b,
-									n,
-									risk_partitioning_objective,
-									use_rational_optimization,
-									"Gaussian")
-    {
-      // Careful: calling virtual method from constructor
-      compute_scores_parallel();
-    }
-  
-    float compute_score_multclust(int i, int j) override {
-      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
-      return (C>B)? .5*(std::pow(C,2)/B + B) - C : 0.;
-    }
-  
-    float compute_score_riskpart(int i, int j) override {
-      float C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-      float B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
-      return C*C/2./B;
-    }
+		    bool use_rational_optimization) : ParametricContext<DataType>(a,
+										  b,
+										  n,
+										  risk_partitioning_objective,
+										  use_rational_optimization,
+										  "Gaussian")
+    {}
 
-    float compute_ambient_score_multclust(float a, float b) override {
-      return (a>b)? .5*(std::pow(a,2)/b + b) - a : 0.;
-    }
+    GaussianContext() = default;
 
-    float compute_ambient_score_riskpart(float a, float b) override {
-      return a*a/2./b;
-    }
-
-    float compute_score_multclust_optimized(int i, int j) override {
-      float score = (a_sums_[i][j] > b_sums_[i][j]) ? .5*(std::pow(a_sums_[i][j], 2)/b_sums_[i][j] + b_sums_[i][j]) - a_sums_[i][j] : 0.;
-      return score;
-    }
-    
-    float compute_score_riskpart_optimized(int i, int j) override {
-      float score = a_sums_[i][j]*a_sums_[i][j]/2./b_sums_[i][j];
-      return score;
-    }
+  private:  
+    DataType compute_score_multclust(int, int) override;
+    DataType compute_score_riskpart(int, int) override;
+    DataType compute_ambient_score_multclust(DataType, DataType) override;
+    DataType compute_ambient_score_riskpart(DataType, DataType) override;
+    DataType compute_score_multclust_optimized(int, int) override;
+    DataType compute_score_riskpart_optimized(int, int) override;
 
   };
 
-  class RationalScoreContext : public ParametricContext {
+  template<typename DataType>
+  class RationalScoreContext : public ParametricContext<DataType> {
     // This class doesn't correspond to any regular exponential family,
     // it is used to define ambient functions on the partition polytope
     // for targeted applications - quadratic approximations to loss, for
     // XGBoost, e.g.
-
   public:
-    RationalScoreContext(std::vector<float> a,
-			 std::vector<float> b,
-			 int n,
+    RationalScoreContext(const std::vector<DataType>& a,
+			 const std::vector<DataType>& b,
+			 std::size_t n,
 			 bool risk_partitioning_objective,
-			 bool use_rational_optimization) : ParametricContext(a,
-									     b,
-									     n,
-									     risk_partitioning_objective,
-									     use_rational_optimization,
-									     "RationalScore")
-    {
-      // Careful: calling virtual method from constructor
-      compute_scores_parallel();
-    }
+			 bool use_rational_optimization) : ParametricContext<DataType>(a,
+										       b,
+										       n,
+										       risk_partitioning_objective,
+										       use_rational_optimization,
+										       "RationalScore")
+    {}
 
-    float compute_score_multclust(int i, int j) override {
-      float score = std::pow(std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.), 2) /
-	std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
-      return score;
-    }
-  
-    float compute_score_riskpart(int i, int j) override {
-      return compute_score_multclust(i, j);
-    }
+    RationalScoreContext() = default;
 
-    float compute_score_riskpart_optimized(int i, int j) override {
-      return compute_score_multclust_optimized(i, j);
-    }
-
-    float compute_score_multclust_optimized(int i, int j) override {
-      float score = a_sums_[i][j] * a_sums_[i][j] / b_sums_[i][j];
-      return score;
-    }
-
-    float compute_ambient_score_multclust(float a, float b) override {
-      return a*a/b;
-    }
-
-    float compute_ambient_score_riskpart(float a, float b) override {
-      return a*a/b;
-    }
+  private:
+    DataType compute_score_multclust(int, int) override;
+    DataType compute_score_riskpart(int, int) override;
+    DataType compute_ambient_score_multclust(DataType, DataType) override;
+    DataType compute_ambient_score_riskpart(DataType, DataType) override;
+    DataType compute_score_riskpart_optimized(int, int) override;
+    DataType compute_score_multclust_optimized(int, int) override;
 
   };
 
-} // namespace Objectives
+}
+#include "score_impl.hpp"
 
 
 #endif

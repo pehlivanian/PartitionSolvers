@@ -55,14 +55,14 @@ auto main() -> int {
     std::generate(a.begin(), a.end(), gena);
     std::generate(b.begin(), b.end(), genb);
 
-    auto dp = DPSolver(n, T, a, b,
-		       objective_fn::Gaussian,
-		       true,
-		       true,
-		       0.0,
-		       1.0,
-		       false,
-		       true);
+    auto dp = DPSolver<float>(n, T, a, b,
+			      objective_fn::Gaussian,
+			      true,
+			      true,
+			      0.0,
+			      1.0,
+			      false,
+			      true);
 
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto dp_scores = dp.get_score_by_subset_extern();
@@ -93,7 +93,7 @@ auto main() -> int {
     std::generate(c.begin(), c.end(), genc);
     std::generate(d.begin(), d.end(), gend);
     
-    auto dp_rp = DPSolver(m, S, c, d,
+    auto dp_rp = DPSolver<float>(m, S, c, d,
 			  objective_fn::Gaussian,
 			  true,
 			  true);
@@ -101,7 +101,7 @@ auto main() -> int {
     auto dp_rp_scores = dp_rp.get_score_by_subset_extern();
     auto dp_rp_score = dp_rp.get_optimal_score_extern();
 
-    auto dp_mc = DPSolver(m, S, c, d, 
+    auto dp_mc = DPSolver<float>(m, S, c, d, 
 			  objective_fn::Gaussian, 
 			  false,
 			  true);

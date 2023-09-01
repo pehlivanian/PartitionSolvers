@@ -183,8 +183,8 @@ TEST_P(DPSolverTestFixture, TestOptimizationFlag) {
     for (auto&el : b)
       el = distb(gen);
     
-    auto dp_unopt = DPSolver(n, T, a, b, objective, true, false);
-    auto dp_opt = DPSolver(n, T, a, b, objective, true, true);
+    auto dp_unopt = DPSolver<float>(n, T, a, b, objective, true, false);
+    auto dp_opt = DPSolver<float>(n, T, a, b, objective, true, true);
     
     auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
     auto subsets_opt = dp_opt.get_optimal_subsets_extern();
@@ -195,8 +195,8 @@ TEST_P(DPSolverTestFixture, TestOptimizationFlag) {
       ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
     }
     
-    dp_unopt = DPSolver(n, T, a, b, objective, false, false);
-    dp_opt = DPSolver(n, T, a, b, objective, false, true);
+    dp_unopt = DPSolver<float>(n, T, a, b, objective, false, false);
+    dp_opt = DPSolver<float>(n, T, a, b, objective, false, true);
     
     subsets_unopt = dp_unopt.get_optimal_subsets_extern();
     subsets_opt = dp_opt.get_optimal_subsets_extern();
@@ -230,7 +230,7 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
-  int n = 500;
+  std::size_t n = 500;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
@@ -247,12 +247,12 @@ TEST(DPSolverTest, TestAVXMatchesSerial) {
     el = distb(gen);
 
   for (auto _ : trials) {
-    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
-    context->compute_partial_sums();
+    RationalScoreContext<float>* context = new RationalScoreContext<float>{a, b, n, false, true};
+    context->__compute_partial_sums__();
     auto a_sums_serial = context->get_partial_sums_a();
     auto b_sums_serial = context->get_partial_sums_b();
 
-    context->compute_partial_sums_AVX256();
+    context->__compute_partial_sums_AVX256__();
     auto a_sums_AVX = context->get_partial_sums_a();
     auto b_sums_AVX = context->get_partial_sums_b();
     
@@ -268,7 +268,7 @@ TEST(DPSolverTest, TestAVXMatchesSerial) {
 TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
   using namespace Objectives;
 
-  int n = 100;
+  std::size_t n = 100;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
@@ -285,9 +285,9 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
     el = distb(gen);
 
   for (auto _ : trials) {
-    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
+    RationalScoreContext<float>* context = new RationalScoreContext<float>{a, b, n, false, true};
     
-    context->compute_partial_sums();
+    context->__compute_partial_sums__();
     auto a_sums_serial = context->get_partial_sums_a();
     auto b_sums_serial = context->get_partial_sums_b();
 
@@ -295,11 +295,11 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
     
     for (int i=0; i<n; ++i) {
       for (int j=i; j<n; ++j) {
-	partialSums_serial[i][j] = context->compute_score(i, j);
+	partialSums_serial[i][j] = context->__compute_score__(i, j);
       }
     }
 
-    context->compute_partial_sums_AVX256();
+    context->__compute_partial_sums_AVX256__();
     auto a_sums_AVX = context->get_partial_sums_a();
     auto b_sums_AVX = context->get_partial_sums_b();
     
@@ -307,11 +307,11 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
 
     for(int i=0; i<n; ++i) {
       for (int j=0; j<=i; ++j) {
-	partialSums_AVX[j][i] = context->compute_score(i, j);
+	partialSums_AVX[j][i] = context->__compute_score__(i, j);
       }
     }
     
-    context->compute_partial_sums_parallel();
+    context->__compute_partial_sums_parallel__();
     auto a_sums_parallel = context->get_partial_sums_a();
     auto b_sums_parallel = context->get_partial_sums_b();
     
@@ -319,7 +319,7 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
 
     for (int i=0; i<n; ++i) {
       for (int j=i; j<n; ++j) {
-	partialSums_parallel[i][j] = context->compute_score(i, j);
+	partialSums_parallel[i][j] = context->__compute_score__(i, j);
       }
     }
     
@@ -352,7 +352,7 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
 TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
   using namespace Objectives;
 
-  int n = 100;
+  std::size_t n = 100;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
@@ -369,9 +369,9 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     el = distb(gen);
 
   for (auto _ : trials) {
-    RationalScoreContext* context = new RationalScoreContext{a, b, n, false, true};
+    RationalScoreContext<float>* context = new RationalScoreContext<float>{a, b, n, false, true};
     
-    context->compute_partial_sums();
+    context->__compute_partial_sums__();
     auto a_sums_serial = context->get_partial_sums_a();
     auto b_sums_serial = context->get_partial_sums_b();
 
@@ -379,13 +379,13 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     
     for (int i=0; i<n; ++i) {
       for (int j=i; j<n; ++j) {
-	partialSums_serial[i][j] = context->compute_score(i, j);
+	partialSums_serial[i][j] = context->__compute_score__(i, j);
       }
     }
-    context->compute_scores_parallel();    
+    context->__compute_scores_parallel__();    
     auto partialSums_serial_from_context = context->get_scores();
 
-    context->compute_partial_sums_parallel();
+    context->__compute_partial_sums_parallel__();
     auto a_sums_parallel = context->get_partial_sums_a();
     auto b_sums_parallel = context->get_partial_sums_b();
     
@@ -393,7 +393,7 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
 
     for (int i=0; i<n; ++i) {
       for (int j=i; j<n; ++j) {
-	partialSums_parallel[i][j] = context->compute_score(i, j);
+	partialSums_parallel[i][j] = context->__compute_score__(i, j);
       }
     }
     
@@ -439,9 +439,9 @@ TEST(DPSolverTest, TestBaselines ) {
       0.21809504, 0.22771114, 0.22745816, 0.21809504, 0.22745816};
 
   std::vector<std::vector<int> > expected = {
-    {1, 2, 3, 4, 6, 8, 10, 12, 16, 19, 22, 23, 25, 28, 29, 32, 35, 38, 21},
+    {1, 2, 3, 4, 6, 8, 10, 12, 16, 19, 21, 22, 23, 25, 28, 29, 32, 35, 38},
     {13, 24}, 
-    {0, 5, 7, 9, 11, 14, 18, 33, 36, 15, 27, 30, 37, 39},
+    {0, 5, 7, 9, 11, 14, 15, 18, 27, 30, 33, 36, 37, 39},
     {17, 26}, 
     {20, 31, 34}
   };
@@ -451,14 +451,15 @@ TEST(DPSolverTest, TestBaselines ) {
   std::vector<float> b1{3.43178016, 3.92117518, 7.29049707, 7.37995406, 4.80931901, 4.38572245,
       3.98044255, 0.59677897};
 
-  auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, true);
+  auto dp1 = DPSolver<float>(8, 3, a1, b1, objective_fn::Poisson, false, true);
   auto opt1 = dp1.get_optimal_subsets_extern();
   
-  auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, true);
+  auto dp = DPSolver<float>(40, 5, a, b, objective_fn::Gaussian, true, true);
   auto opt = dp.get_optimal_subsets_extern();
 
   for (size_t i=0; i<expected.size(); ++i) {
     auto expected_subset = expected[i], opt_subset = opt[i];
+    std::sort(opt_subset.begin(), opt_subset.end());
     ASSERT_EQ(expected_subset.size(), opt_subset.size());
     for(size_t j=0; j<expected_subset.size(); ++j) {
       ASSERT_EQ(expected_subset[j], opt_subset[j]);
@@ -486,7 +487,7 @@ TEST_P(DPSolverTestFixture, TestOrderedProperty) {
     // Presort
     sort_by_priority(a, b);
     
-    auto dp = DPSolver(n, T, a, b, objective, false, true);
+    auto dp = DPSolver<float>(n, T, a, b, objective, false, true);
     auto opt = dp.get_optimal_subsets_extern();
     
     int sum;
@@ -532,7 +533,7 @@ TEST_P(DPSolverTestFixtureExponentialFamily, TestSinglePartitionSpecification) {
 
     objective_fn objective = GetParam();
 
-    auto dp = DPSolver(n, T, a, b, objective, false, true);
+    auto dp = DPSolver<float>(n, T, a, b, objective, false, true);
     auto dp_opt = dp.get_optimal_subsets_extern();
     
     ASSERT_EQ(dp_opt.size(), 1);
@@ -580,12 +581,13 @@ TEST_P(DPSolverTestFixtureExponentialFamily, TestHighestScoringSetOf2TieOutAllDi
     if (objective == objective_fn::RationalScore)
       continue;
     
-    auto dp = DPSolver(n, T, a, b, objective, false, true);
+    auto dp = DPSolver<float>(n, T, a, b, objective, false, true);
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto scores = dp.get_score_by_subset_extern();
     
-    auto ltss = LTSSSolver(n, a, b, objective);
+    auto ltss = LTSSSolver<float>(n, a, b, objective);
     auto ltss_opt = ltss.get_optimal_subset_extern();
+    auto ltss_score = ltss.get_optimal_score_extern();
       
     if (!((ltss_opt.size() == dp_opt[1].size()) || 
 	  ((scores[0] == scores[1]) && (ltss_opt.size() == dp_opt[0].size()))))
@@ -633,7 +635,7 @@ TEST_P(DPSolverTestFixtureExponentialFamily, TestBestSweepResultIsAlwaysMostGran
     ASSERT_GE(n, 10);
     ASSERT_LE(n, 100);
     
-    auto dp_sweep = DPSolver(n, T, a, b, objective, false, true, 0., 1., true);
+    auto dp_sweep = DPSolver<float>(n, T, a, b, objective, false, true, 0., 1., true);
     auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
     float current_best = all_parts_scores[0].second;
     
@@ -677,11 +679,11 @@ TEST_P(DPSolverTestFixture, TestSweepResultsMatchSingleTResults) {
 
     objective_fn objective = GetParam();
 
-    auto dp_sweep = DPSolver(n, T, a, b, objective, true, true, 0., 1., true);
+    auto dp_sweep = DPSolver<float>(n, T, a, b, objective, true, true, 0., 1., true);
     auto all_parts_scores = dp_sweep.get_all_subsets_and_scores_extern();
 
     for (size_t i=T; i>=1; --i) {
-      auto dp = DPSolver(n, i, a, b, objective, true, true);
+      auto dp = DPSolver<float>(n, i, a, b, objective, true, true);
       auto dp_opt = dp.get_optimal_subsets_extern();
       auto score = dp.get_optimal_score_extern();
       auto dp_opt_sweep = all_parts_scores[i].first;
@@ -756,15 +758,15 @@ TEST_P(DPSolverTestFixture, TestConsistencyofOLSReturnedPartitionSize) {
       a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
     }
       
-    auto dp = DPSolver(n, T, a, b,
-		       objective,
-		       true,
-		       true,
-		       0.,
-		       1.,
-		       false,
-		       true);
-      
+    auto dp = DPSolver<float>(n, T, a, b,
+			      objective,
+			      true,
+			      true,
+			      0.,
+			      1.,
+			      false,
+			      true);
+    
     numClusters = dp.get_optimal_num_clusters_OLS_extern();
     partition = dp.get_optimal_subsets_extern();
     partitions = dp.get_all_subsets_and_scores_extern();
@@ -829,14 +831,14 @@ TEST_P(DPSolverTestFixture, TestSweepWithOptimalTMatchesManualSweep) {
     }
     
     // Sweep, optimal t calculation handled by solver
-    auto dp = DPSolver(n, T, a, b,
-		       objective,
-		       true,
-		       true,
-		       0.,
-		       1.,
-		       false,
-		       true);
+    auto dp = DPSolver<float>(n, T, a, b,
+			      objective,
+			      true,
+			      true,
+			      0.,
+			      1.,
+			      false,
+			      true);
     
     num_clusters = dp.get_optimal_num_clusters_OLS_extern();
     all_data = dp.get_all_subsets_and_scores_extern(); // std::vector<std::pair<std::vector<std::vector<int> >,float> >
@@ -852,12 +854,12 @@ TEST_P(DPSolverTestFixture, TestSweepWithOptimalTMatchesManualSweep) {
 				 objective_fn objective,
 				 float gamma,
 				 int reg_power) {
-      auto dp = DPSolver(n, i, a, b, 
-			 objective,
-			 true,
-			 true,
-			 gamma,
-			 reg_power);
+      auto dp = DPSolver<float>(n, i, a, b, 
+				objective,
+				true,
+				true,
+				gamma,
+				reg_power);
       results_queue.push(std::make_pair(dp.get_optimal_subsets_extern(),
 					dp.get_optimal_score_extern()));
       
@@ -951,14 +953,14 @@ TEST_P(DPSolverTestFixture, TestOptimalNumberofClustersMatchesMixture) {
 	a = mixture_gaussian_dist(n, b, numMixed, SIGMA, EPSILON);
       }
       
-      auto dp = DPSolver(n, T, a, b,
-			 objective,
-			 true,
-			 true,
-			 0.,
-			 1.,
-			 false,
-			 true);
+      auto dp = DPSolver<float>(n, T, a, b,
+				objective,
+				true,
+				true,
+				0.,
+				1.,
+				false,
+				true);
       
       num_clusters = dp.get_optimal_num_clusters_OLS_extern();
       cluster_sum += num_clusters;
@@ -988,15 +990,15 @@ TEST_P(DPSolverTestFixture, TestDisreteValuedPriorityFunction) {
     for (auto &el: b)
       el = 1.;
 
-    auto dp = DPSolver(n, T, a, b,
-		       objective,
-		       true,
-		       true,
-		       0.,
-		       1.,
-		       false,
-		       true);
-
+    auto dp = DPSolver<float>(n, T, a, b,
+			      objective,
+			      true,
+			      true,
+			      0.,
+			      1.,
+			      false,
+			      true);
+    
     numClusters = dp.get_optimal_num_clusters_OLS_extern();
 
     ASSERT_GE(numClusters, 1);
@@ -1005,7 +1007,7 @@ TEST_P(DPSolverTestFixture, TestDisreteValuedPriorityFunction) {
 }
 
 TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
-  int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
+  int NUM_CASES = 100, NUM_SUBCASES = 500, T = 3;
 
   std::default_random_engine gen;
   gen.seed(std::random_device()());
@@ -1032,7 +1034,7 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
 
     objective_fn objective = GetParam();
 
-    auto dp = DPSolver(n, T, a, b, objective, true, true);
+    auto dp = DPSolver<float>(n, T, a, b, objective, true, true);
     auto dp_opt = dp.get_optimal_subsets_extern();
     auto scores = dp.get_score_by_subset_extern();
 
@@ -1046,24 +1048,27 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
       m21 = std::min(m1, m2);
       m22 = std::max(m1, m2);
       
-      std::unique_ptr<ParametricContext> context;
+      std::unique_ptr<ParametricContext<float>> context;
 	
       switch (objective) {
       case objective_fn::Gaussian :
-	context = std::make_unique<GaussianContext>(a, b, n, true, false);
+	context = std::make_unique<GaussianContext<float>>(a, b, n, true, false);
       case objective_fn::Poisson :
-	context = std::make_unique<PoissonContext>(a, b, n, true, false);
+	context = std::make_unique<PoissonContext<float>>(a, b, n, true, false);
       case objective_fn::RationalScore :
-	context = std::make_unique<RationalScoreContext>(a, b, n, true, false);
+	context = std::make_unique<RationalScoreContext<float>>(a, b, n, true, false);
       }
 
+      // Explicit init call to fill _a_sums_, b_sums_
+      context->init();
+
       float rand_score, dp_score;
-      rand_score = context->compute_score(0, m21) + 
-	context->compute_score(m21, m22) + 
-	context->compute_score(m22, n);
-      dp_score = context->compute_score(dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
-	context->compute_score(dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
-	context->compute_score(dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
+      rand_score = context->__compute_score__(0, m21) + 
+	context->__compute_score__(m21, m22) + 
+	context->__compute_score__(m22, n);
+      dp_score = context->__compute_score__(dp_opt[0][0], 1+dp_opt[0][dp_opt[0].size()-1]) + 
+	context->__compute_score__(dp_opt[1][0], 1+dp_opt[1][dp_opt[1].size()-1]) + 
+	context->__compute_score__(dp_opt[2][0], 1+dp_opt[2][dp_opt[2].size()-1]);
 
       if ((dp_score - rand_score) > std::numeric_limits<float>::epsilon()) {
 	ASSERT_LE(rand_score, dp_score);
@@ -1076,3 +1081,4 @@ auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+

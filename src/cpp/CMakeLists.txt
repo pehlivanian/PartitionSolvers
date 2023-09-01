@@ -2,16 +2,20 @@ cmake_minimum_required(VERSION 3.6)
 
 project(proto)
 
+# Necessary for SWIG bindings; ignore cmake warnings
 cmake_policy(SET CMP0078 OLD)
 cmake_policy(SET CMP0086 OLD)
+cmake_policy(SET CMP0148 OLD)
 
 # SWIG, Python
 if (SWIG_BINDINGS)
   find_package(SWIG REQUIRED)
 endif()
-find_package(PythonInterp 3 REQUIRED)
-find_package(PythonLibs 3 REQUIRED)
 
+# For cmake v <= 3.12
+# find_package(PythonInterp 3 REQUIRED)
+# find_package(PythonLibs 3 REQUIRED)
+find_package(Python 3.8 COMPONENTS Interpreter Development)
 
 include(UseSWIG)
 include(GNUInstallDirs)
@@ -26,7 +30,7 @@ target_link_libraries(LTSS_solver_demo LTSS score)
 
 # DPSolver
 add_executable(DP_solver_demo DP_solver_demo.cpp)
-target_link_libraries(DP_solver_demo DP LTSS score pthread)
+target_link_libraries(DP_solver_demo DP score pthread)
 
 # solver_timer
 add_executable(solver_timer solver_timer.cpp)

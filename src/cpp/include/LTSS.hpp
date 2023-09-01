@@ -3,21 +3,32 @@
 
 #include <list>
 #include <utility>
+#include <algorithm>
+#include <iostream>
 #include <vector>
 #include <limits>
 #include <iterator>
 #include <algorithm>
 #include <memory>
+#include <exception>
+#include <cmath>
 
 #include "port_utils.hpp"
 #include "score.hpp"
 
 using namespace Objectives;
 
+struct distributionException : public std::exception {
+  const char* what() const throw() {
+    return "Bad distributional assignment";
+  }
+};
+
+template<typename DataType>
 class LTSSSolver {
 public:
-  LTSSSolver(std::vector<float> a,
-	     std::vector<float> b,
+  LTSSSolver(std::vector<DataType> a,
+	     std::vector<DataType> b,
 	     objective_fn parametric_dist=objective_fn::Gaussian
 	     ) :
     n_{static_cast<int>(a.size())},
@@ -27,8 +38,8 @@ public:
   { _init(); }
 	     
   LTSSSolver(int n,
-	     std::vector<float> a,
-	     std::vector<float> b,
+	     std::vector<DataType> a,
+	     std::vector<DataType> b,
 	     objective_fn parametric_dist=objective_fn::Gaussian
 	     ) :
     n_{n},
@@ -43,20 +54,22 @@ public:
 
 private:
   int n_;
-  std::vector<float> a_;
-  std::vector<float> b_;
+  std::vector<DataType> a_;
+  std::vector<DataType> b_;
   float optimal_score_;
   std::vector<int> subset_;
   objective_fn parametric_dist_;
-  std::unique_ptr<ParametricContext> context_;
+  std::unique_ptr<ParametricContext<DataType>> context_;
 
   void _init() { create(); optimize(); }
   void create();
   void createContext();
   void optimize();
 
-  void sort_by_priority(std::vector<float>&, std::vector<float>&);
+  void sort_by_priority(std::vector<DataType>&, std::vector<DataType>&);
   float compute_score(int, int);
 };
+
+#include "LTSS_impl.hpp"
 
 #endif

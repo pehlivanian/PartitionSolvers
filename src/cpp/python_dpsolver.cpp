@@ -9,8 +9,8 @@ using namespace Objectives;
 #define POISS_OBJ objective_fn::Poisson
 #define RATL_OBJ  objective_fn::RationalScore
 
-#define DPSOLVER_RISK_PART_(n,T,a,b)  (DPSolver(n, T, a, b, GAUSS_OBJ, true, false))
-#define DPSOLVER_MULT_CLUST_(n,T,a,b) (DPSolver(n, T, a, b, GAUSS_OBJ, false, true))
+#define DPSOLVER_RISK_PART_(n,T,a,b)  (DPSolver<float>(n, T, a, b, GAUSS_OBJ, true, false))
+#define DPSOLVER_MULT_CLUST_(n,T,a,b) (DPSolver<float>(n, T, a, b, GAUSS_OBJ, false, true))
 
 #ifdef MULT_CLUST
 #define DPSOLVER_(n,T,a,b) (DPSOLVER_MULT_CLUST_(n,T,a,b))
@@ -18,34 +18,28 @@ using namespace Objectives;
 #define DPSOLVER_(n,T,a,b) (DPSOLVER_RISK_PART_(n,T,a,b))
 #endif
 
-struct distributionException : public std::exception {
-  const char* what() const throw () {
-    return "Bad distributional assignment";
-  };
-};
-
 std::pair<std::vector<std::pair<std::vector<std::vector<int> >,float> >, int> compute_optimal_num_clusters_OLS_all(int n,
-								    int T,
-								    std::vector<float> a,
-								    std::vector<float> b,
-								    int parametric_dist,
-								    bool risk_partitioning_objective,
-								    bool use_rational_optimization,
-								    float gamma,
-								    int reg_power) {
+															 int T,
+															 std::vector<float> a,
+															 std::vector<float> b,
+															 int parametric_dist,
+															 bool risk_partitioning_objective,
+															 bool use_rational_optimization,
+															 float gamma,
+															 int reg_power) {
 
-  auto dp = DPSolver(n, 
-		     T, 
-		     a, 
-		     b, 
-		     static_cast<objective_fn>(parametric_dist), 
-		     risk_partitioning_objective, 
-		     use_rational_optimization,
-		     gamma,
-		     reg_power,
-		     false,
-		     true);
-
+  auto dp = DPSolver<float>(n, 
+			    T, 
+			    a, 
+			    b, 
+			    static_cast<objective_fn>(parametric_dist), 
+			    risk_partitioning_objective, 
+			    use_rational_optimization,
+			    gamma,
+			    reg_power,
+			    false,
+			    true);
+  
   std::vector<std::pair<std::vector<std::vector<int> >,float> > subsets_and_scores = dp.get_all_subsets_and_scores_extern();
   int optimal_t = dp.get_optimal_num_clusters_OLS_extern();
 
@@ -62,7 +56,7 @@ int compute_optimal_num_clusters_OLS(int n,
 				     float gamma,
 				     int reg_power) {
   
-  auto dp = DPSolver(n, 
+  auto dp = DPSolver<float>(n, 
 		     T, 
 		     a, 
 		     b, 
@@ -85,24 +79,24 @@ float compute_score(std::vector<float> a,
 
   int n = a.size();  
   auto obj_fn = static_cast<objective_fn>(parametric_dist);
-  std::unique_ptr<ParametricContext> context;
+  std::unique_ptr<ParametricContext<float>> context;
 
   if (obj_fn == objective_fn::Gaussian) {
-    context = std::make_unique<GaussianContext>(a, 
+    context = std::make_unique<GaussianContext<float>>(a, 
 						b, 
 						n, 
 						risk_partitioning_objective,
 						use_rational_optimization);
   }
   else if (obj_fn == objective_fn::Poisson) {
-    context = std::make_unique<PoissonContext>(a, 
+    context = std::make_unique<PoissonContext<float>>(a, 
 					       b, 
 					       n,
 					       risk_partitioning_objective,
 					       use_rational_optimization);
   }
   else if (obj_fn == objective_fn::RationalScore) {
-    context = std::make_unique<RationalScoreContext>(a, 
+    context = std::make_unique<RationalScoreContext<float>>(a, 
 						     b, 
 						     n,
 						     risk_partitioning_objective,
@@ -112,7 +106,8 @@ float compute_score(std::vector<float> a,
     throw distributionException();
   }
 
-  return context->compute_score(0, n);  
+  context->init();
+  return context->get_score(0, n);  
 }
 
 std::vector<std::vector<int> > find_optimal_partition__DP(int n,
@@ -124,7 +119,7 @@ std::vector<std::vector<int> > find_optimal_partition__DP(int n,
 							  bool use_rational_optimization,
 							  float gamma,
 							  int reg_power) {
-  auto dp = DPSolver(n, 
+  auto dp = DPSolver<float>(n, 
 		     T, 
 		     a, 
 		     b, 
@@ -145,7 +140,7 @@ float find_optimal_score__DP(int n,
 			     bool use_rational_optimization,
 			     float gamma,
 			     int reg_power) {
-  auto dp = DPSolver(n, 
+  auto dp = DPSolver<float>(n, 
 		     T, 
 		     a, 
 		     b, 
@@ -166,7 +161,7 @@ std::vector<std::pair<std::vector<std::vector<int> >, float> > optimize_all__DP(
 										bool use_rational_optimization,
 										float gamma,
 										int reg_power) {
-  auto dp = DPSolver(n,
+  auto dp = DPSolver<float>(n,
 		     T,
 		     a,
 		     b,
@@ -190,7 +185,7 @@ std::pair<std::vector<std::vector<int> >, float> optimize_one__DP(int n,
 								  bool use_rational_optimization,
 								  float gamma,
 								  int reg_power) {
-  auto dp = DPSolver(n, 
+  auto dp = DPSolver<float>(n, 
 		     T, 
 		     a, 
 		     b, 
@@ -214,7 +209,7 @@ std::pair<std::vector<std::vector<int> >, float> sweep_best_OLS__DP(int n,
 								   bool use_rational_optimization,
 								   float gamma,
 								   int reg_power) {
-  auto dp = DPSolver(n,
+  auto dp = DPSolver<float>(n,
 		     T,
 		     a,
 		     b,
@@ -246,7 +241,7 @@ std::pair<std::vector<std::vector<int> >,float> sweep_best__DP(int n,
   std::vector<std::vector<int> > subsets;
 
   for (int i=T; i>1; --i) {
-    auto dp = DPSolver(n,
+    auto dp = DPSolver<float>(n,
 		       i,
 		       a,
 		       b,
@@ -286,7 +281,7 @@ std::vector<std::pair<std::vector<std::vector<int> >,float> > sweep_parallel__DP
 			       bool use_rational_optimization,
 			       float gamma,
 			       int reg_power) {
-    auto dp = DPSolver(n,
+    auto dp = DPSolver<float>(n,
 		       i,
 		       a,
 		       b,

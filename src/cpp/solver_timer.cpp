@@ -69,7 +69,7 @@ auto main(int argc, char **argv) -> int {
 	//= Start timing block =
 	//======================
 	precise_timer timer;
-	auto dp = DPSolver(sampleSize, numParts, a, b, dist, risk_partitioning, optimized);
+	auto dp = DPSolver<float>(sampleSize, numParts, a, b, dist, risk_partitioning, optimized);
 	auto et = timer.elapsed_time<unsigned int, std::chrono::microseconds>();
 	//====================
 	//= End timing block =
