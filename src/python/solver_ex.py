@@ -188,7 +188,7 @@ for num_trial in range(NUM_TRIALS):
 # t selection in C++; should identify 2 clusters                      #
 #######################################################################
 n = 2000
-objective_fn = Distribution.RATIONALSCORE
+objective_fn = Distribution.POISSON
 
 # a grouped in 4 clusters
 a = rng.choice([-20., -10.,10., 20.],size=n)

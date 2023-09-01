@@ -64,21 +64,21 @@ endif()
 # $ swig -c++ -python -I./include -outdir ../python proto.i
 # $ clang++ -std=c++17 -c -fPIC -mavx2 -O3 -I/usr/local/include/eigen3 LTSS.cpp python_dpsolver.cpp DP.cpp python_ltsssolver.cpp proto_wrap.cxx -I/usr/include/python3.8 -I./include
 # $ clang++ -std=c++17 -O3 -shared python_dpsolver.o DP.o python_ltsssolver.o LTSS.o proto_wrap.o -o ../python/_proto.so -lstdc++
-# $ rm *.o
 
 
 # Test:
-# $ python solver_ex.py
+# $ python solver_tests.py
 
-# For the <PYTHON_INCLUDE> path above with the include directory on your host, as in
+# /usr/include/python3.8 specifies location of Python.h, to find:
+
 # In [1]: from sysconfig import get_paths                                                                                  
 # In [2]: from pprint import pprint                                                                                        
 # In [3]: pprint(get_paths())                                                                                                                
 # {'data': '/usr',
-#  'include': '/usr/include/python3.6',			<<- "include_path"
-#  'platinclude': '/usr/include/python3.6', 
-#  'platlib': '/usr/lib/python3.6/site-packages',
-#  'platstdlib': '/usr/lib/python3.6',
-#  'purelib': '/usr/lib/python3.6/site-packages',
+#  'include': '/usr/include/python3.8',			<<----<
+#  'platinclude': '/usr/include/python3.8', 
+#  'platlib': '/usr/lib/python3.8/site-packages',
+#  'platstdlib': '/usr/lib/python3.8',
+#  'purelib': '/usr/lib/python3.8/site-packages',
 #  'scripts': '/usr/bin',
-#  'stdlib': '/usr/lib/python3.6'}
+#  'stdlib': '/usr/lib/python3.8'}
