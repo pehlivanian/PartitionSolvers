@@ -21,6 +21,22 @@ class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 class DPSolverTestFixtureExponentialFamily : public ::testing::TestWithParam<objective_fn> {
 };
 
+INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
+			 DPSolverTestFixture, 
+			 ::testing::Values(
+					   objective_fn::Gaussian,
+					   objective_fn::Poisson,
+					   objective_fn::RationalScore
+					   )
+			 );
+
+INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
+			 DPSolverTestFixtureExponentialFamily, 
+			 ::testing::Values(
+					   objective_fn::Gaussian,
+					   objective_fn::Poisson
+					   )
+			 );
 
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
@@ -161,71 +177,6 @@ float mixture_of_uniforms(int n) {
   }
   return dista(mersenne_engine) + static_cast<float>(bin)-1.;
 }
-
-
-/*
-TEST_P(DPSolverTestFixture, TestOptimizationFlag) {
-
-  int n = 100, T = 25;
-  size_t NUM_CASES = 100;
-  
-  std::default_random_engine gen;
-  gen.seed(std::random_device()());
-  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
-
-  std::vector<float> a(n), b(n);
-
-  objective_fn objective = GetParam();
-
-  for (size_t i=0; i<NUM_CASES; ++i) {
-    for (auto &el : a)
-      el = dista(gen);
-    for (auto&el : b)
-      el = distb(gen);
-    
-    auto dp_unopt = DPSolver<float>(n, T, a, b, objective, true, false);
-    auto dp_opt = DPSolver<float>(n, T, a, b, objective, true, true);
-    
-    auto subsets_unopt = dp_unopt.get_optimal_subsets_extern();
-    auto subsets_opt = dp_opt.get_optimal_subsets_extern();
-    
-    ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
-    
-    for (size_t j=0; j<subsets_unopt.size(); ++j) {
-      ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
-    }
-    
-    dp_unopt = DPSolver<float>(n, T, a, b, objective, false, false);
-    dp_opt = DPSolver<float>(n, T, a, b, objective, false, true);
-    
-    subsets_unopt = dp_unopt.get_optimal_subsets_extern();
-    subsets_opt = dp_opt.get_optimal_subsets_extern();
-    
-    ASSERT_EQ(subsets_unopt.size(), subsets_opt.size());
-    
-    for (size_t j=0; j<subsets_unopt.size(); ++j) {
-      ASSERT_EQ(subsets_unopt[j], subsets_opt[j]);
-    }    
-  }
-}
-*/
-
-INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
-			 DPSolverTestFixture, 
-			 ::testing::Values(
-					   objective_fn::Gaussian,
-					   objective_fn::Poisson,
-					   objective_fn::RationalScore
-					   )
-			 );
-
-INSTANTIATE_TEST_SUITE_P(DPSolverTests, 
-			 DPSolverTestFixtureExponentialFamily, 
-			 ::testing::Values(
-					   objective_fn::Gaussian,
-					   objective_fn::Poisson
-					   )
-			 );
 
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;

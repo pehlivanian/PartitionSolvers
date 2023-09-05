@@ -12,15 +12,13 @@ if (SWIG_BINDINGS)
   find_package(SWIG REQUIRED)
 endif()
 
-# For cmake v <= 3.12
-# find_package(PythonInterp 3 REQUIRED)
-# find_package(PythonLibs 3 REQUIRED)
-find_package(Python 3.8 COMPONENTS Interpreter Development)
+find_package(PythonLibs 3 REQUIRED)
 
 include(UseSWIG)
 include(GNUInstallDirs)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Finding eigen3 path flaky in some envs; use abs path
 include_directories(/usr/local/include/eigen3)
 

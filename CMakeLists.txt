@@ -9,8 +9,9 @@ project(proto)
 # option(USE_C++17 "Use C++17 compliant compiler, default is C++11" ON)
 # option(USE_C++14 "Use C++14 compliant compiler, default is C++!1" OFF)
 # option(USE_C++11 "Use C++11 compliant compiler, default is C++11" OFF)
-# option(GTEST "Compile google tests, default is OFF" OFF)
-# option(SWIG_BINDINGS "Compile SWIG bindings for python" ON)
+option(GTEST "Compile google tests, default is ON" ON)
+option(BENCHMARK "Compile benchmark tests, default is ON" ON)
+option(SWIG_BINDINGS "Compile SWIG bindings for python" ON)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -35,7 +36,7 @@ endif()
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/python)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 
-# For debug symbols -- config with cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Debug
+# Debug symbols
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
@@ -45,6 +46,9 @@ add_subdirectory(src/cpp)
 if (GTEST)
   add_subdirectory(src/cpp/test)
 endif()
+if (BENCHMARK)
+  add_subdirectory(src/cpp/benchmark)
+endif()
 
 ###########################################################
 # To compile swig c++ python bindings from command line   #
@@ -53,7 +57,7 @@ endif()
 # SWIG bindings can be created outside of cmake, for those who just want the python
 # interface and that's it. 
 # 
-# ---> Issue following from <PROJECT_SOURCE_DIR>/src/cpp
+# ---> Issue the following from <PROJECT_SOURCE_DIR>/src/cpp
 #
 # To generate swig bindings [>=C++14] which do not link to eigen3 lib
 # $ swig -c++ -python -I./include -outdir ../python proto.i
